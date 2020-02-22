@@ -50,3 +50,6 @@ dist/
 
 cypress/screenshots/
 cypress/videos/
+
+# VSCode
+/.vscode
