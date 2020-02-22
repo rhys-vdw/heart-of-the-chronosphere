@@ -1,4 +1,4 @@
 import { render, h } from "preact";
-import TodoList from "./components/todo-list";
+import { Main } from "./components/main";
 
-render(<TodoList />, document.getElementById("root")!);
+render(<Main />, document.getElementById("root")!);

@@ -54,6 +54,7 @@
     "webpack-dev-server": "3.10.2"
   },
   "dependencies": {
+    "csstype": "2.6.9",
     "preact": "8.5.3"
   }
 }
