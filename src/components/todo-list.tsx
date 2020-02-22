@@ -1,13 +1,13 @@
 import { Component, h } from "preact";
 import TodoItem from "./todo-item";
 
-interface TodoListState {
-  todos: { text: string }[];
-  text: string;
+interface State {
+  readonly todos: { readonly text: string }[];
+  readonly text: string;
 }
 
-export default class TodoList extends Component<{}, TodoListState> {
-  state = { todos: [], text: "" };
+export default class TodoList extends Component<{}, State> {
+  state: State = { todos: [], text: "" };
 
   setText = (e: Event) => {
     this.setState({
@@ -24,7 +24,7 @@ export default class TodoList extends Component<{}, TodoListState> {
     });
   };
 
-  render({}, { todos, text }) {
+  render({}, { todos, text }: State) {
     return (
       <form onSubmit={this.addTodo} action="javascript:">
         <input value={text} onInput={this.setText} data-cy="new-todo-input" />
