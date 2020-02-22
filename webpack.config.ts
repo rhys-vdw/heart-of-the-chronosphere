@@ -1,3 +1,4 @@
+// tslint:enable:no-implicit-dependencies dev
 import * as webpack from "webpack";
 import { resolve, join } from "path";
 import * as HtmlWebpackPlugin from "html-webpack-plugin";
@@ -58,7 +59,18 @@ module.exports = (env: WebpackEnvironment, argv: { mode: string }) => {
         {
           test: /\.svg$/,
           loader: "file-loader",
-          exclude: /node_modules/
+          exclude: /node_modules/,
+          options: {
+            outputPath: "images"
+          }
+        },
+        {
+          test: /\.(woff|woff2)$/,
+          loader: "file-loader",
+          exclude: /node_modules/,
+          options: {
+            outputPath: "fonts"
+          }
         }
       ]
     },

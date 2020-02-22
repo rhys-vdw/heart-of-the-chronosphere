@@ -17,6 +17,6 @@ const logoStyles = {
 export const Title = () => (
   <div style={titleStyles}>
     <img style={logoStyles} src={logo} />
-    <p>A game by Rhys van der Waerden rhys.vdw@gmail.com</p>
+    <p>Created by Rhys van der Waerden for 7DRL 2020</p>
   </div>
 );
