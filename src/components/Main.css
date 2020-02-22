@@ -11,6 +11,8 @@
   flex-grow: 10;
   margin: 1em;
   margin-bottom: 0;
+
+  position: relative;
 }
 
 .status {
