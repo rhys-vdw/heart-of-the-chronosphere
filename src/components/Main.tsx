@@ -1,6 +1,7 @@
 import { Component, h } from "preact";
 import { StandardProperties as Css } from "csstype";
 import { lineColor } from "../colors";
+import { Title } from "./Title";
 
 const box: Css = {
   border: `1px solid ${lineColor}`,
@@ -32,7 +33,9 @@ export class Main extends Component {
   render() {
     return (
       <main style={mainStyle}>
-        <section style={gameStyle}>The game</section>
+        <section style={gameStyle}>
+          <Title />
+        </section>
         <section style={statusStyle}>Status bar</section>
       </main>
     );

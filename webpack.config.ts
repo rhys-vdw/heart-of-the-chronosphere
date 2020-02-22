@@ -54,6 +54,11 @@ module.exports = (env: WebpackEnvironment, argv: { mode: string }) => {
           test: /\.tsx?$/,
           loader: "ts-loader",
           exclude: /node_modules/
+        },
+        {
+          test: /\.svg$/,
+          loader: "file-loader",
+          exclude: /node_modules/
         }
       ]
     },
