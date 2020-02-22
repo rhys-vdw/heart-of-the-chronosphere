@@ -1,16 +1,11 @@
 {
-  "name": "ts-preact-starter",
+  "name": "heart-of-the-chronosphere",
   "version": "1.0.0",
-  "description": "Barebones starter project for Preact with TypeScript",
+  "description": "",
   "main": "index.js",
-  "author": "Nick Taylor <nick@iamdeveloper.com>",
+  "author": "Rhys van der Waerden <rhys.vdw@gmail.com>",
   "license": "MIT",
-  "keywords": [
-    "preact",
-    "react",
-    "typescript",
-    "boilerplate"
-  ],
+  "keywords": [],
   "engines": {
     "node": ">=8"
   },
