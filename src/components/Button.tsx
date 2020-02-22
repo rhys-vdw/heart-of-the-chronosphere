@@ -1,21 +1,8 @@
-import { h, ComponentChild } from "preact";
-import { Css, boxStyle } from "./style";
+import { h } from "preact";
+import * as styles from "./Button.css";
 
-const style: Css = {
-  ...boxStyle,
-  background: "transparent",
-  borderRadius: 0,
-  padding: "0.5em 1em",
-  fontSize: "inherit",
-  cursor: "pointer"
-};
+type Props = Omit<JSX.HTMLAttributes, "className">;
 
-export const Button = (props: JSX.HTMLAttributes) =>
-  props.style === undefined ? (
-    <button style={style} {...props} />
-  ) : (
-    <button
-      style={props.style !== undefined ? { ...props.style, ...style } : style}
-      {...props}
-    />
-  );
+export const Button = (props: Props) => (
+  <button className={styles.button} {...props} />
+);

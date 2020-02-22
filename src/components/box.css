@@ -1,0 +1,8 @@
+:root {
+  --line-color: #ddd;
+}
+
+.box {
+  border: 1px solid var(--line-color);
+  color: var(--line-color);
+}

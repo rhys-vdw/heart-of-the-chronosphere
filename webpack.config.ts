@@ -4,7 +4,7 @@ import { resolve, join } from "path";
 import * as HtmlWebpackPlugin from "html-webpack-plugin";
 
 const { HotModuleReplacementPlugin } = webpack;
-const port = 3000;
+const port = 9000;
 const context = __dirname + "/src";
 
 interface WebpackEnvironment {
@@ -71,6 +71,21 @@ module.exports = (env: WebpackEnvironment, argv: { mode: string }) => {
           options: {
             outputPath: "fonts"
           }
+        },
+        {
+          test: /\.css$/i,
+          use: [
+            // Doesn't work consistently for some reason...
+            // { loader: "style-loader", options: { esModule: true } },
+            { loader: "style-loader", options: { esModule: false } },
+            {
+              loader: "css-loader",
+              options: {
+                modules: true,
+                esModule: true
+              }
+            }
+          ]
         }
       ]
     },
