@@ -1,5 +1,5 @@
 .main {
-  composes: box from "./box.css";
+  composes: box from "./shared.css";
   width: 100%;
   height: 100%;
   display: flex;
@@ -7,14 +7,14 @@
 }
 
 .game {
-  composes: box from "./box.css";
+  composes: box from "./shared.css";
   flex-grow: 10;
   margin: 1em;
   margin-bottom: 0;
 }
 
 .status {
-  composes: box from "./box.css";
+  composes: box from "./shared.css";
   flex-grow: 1;
   margin: 1em;
 }
