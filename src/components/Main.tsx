@@ -1,15 +1,9 @@
 import { Component, h } from "preact";
-import { StandardProperties as Css } from "csstype";
-import { lineColor } from "../colors";
+import { Css, boxStyle } from "./style";
 import { Title } from "./Title";
 
-const box: Css = {
-  border: `1px solid ${lineColor}`,
-  color: lineColor
-};
-
 const mainStyle: Css = {
-  ...box,
+  ...boxStyle,
   width: "100%",
   height: "100%",
   display: "flex",
@@ -17,24 +11,36 @@ const mainStyle: Css = {
 };
 
 const gameStyle: Css = {
-  ...box,
+  ...boxStyle,
   flexGrow: 10,
   margin: "1em",
   marginBottom: 0
 };
 
 const statusStyle = {
-  ...box,
+  ...boxStyle,
   flexGrow: 1,
   margin: "1em"
 };
 
-export class Main extends Component {
+interface State {
+  readonly isPlaying: boolean;
+}
+
+export class Main extends Component<{}, State> {
+  state: State = {
+    isPlaying: false
+  };
+
+  private handleNewGame = () => {
+    this.setState({ isPlaying: true });
+  };
+
   render() {
     return (
       <main style={mainStyle}>
         <section style={gameStyle}>
-          <Title />
+          <Title onNewGame={this.handleNewGame} />
         </section>
         <section style={statusStyle}>Status bar</section>
       </main>

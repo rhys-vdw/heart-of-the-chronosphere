@@ -32,9 +32,8 @@ document.getElementsByTagName("style")[0]!.innerHTML += `
   font-style: normal;
 }
 
-html, body {
+html, body, button {
   font-family: 'Comfortaa', monospace, sans-serif;
-  color: magenta;
 }
 `;
 

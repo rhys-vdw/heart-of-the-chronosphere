@@ -1,6 +1,7 @@
 import { h } from "preact";
 import logo from "../img/logo.svg";
-import { StandardProperties as Css } from "csstype";
+import { Css } from "./style";
+import { Button } from "./Button";
 
 const titleStyles: Css = {
   display: "flex",
@@ -14,9 +15,14 @@ const logoStyles = {
   width: "80%"
 };
 
-export const Title = () => (
+interface Props {
+  readonly onNewGame: () => void;
+}
+
+export const Title = ({ onNewGame }: Props) => (
   <div style={titleStyles}>
     <img style={logoStyles} src={logo} />
     <p>Created by Rhys van der Waerden for 7DRL 2020</p>
+    <Button onClick={onNewGame}>New game</Button>
   </div>
 );
