@@ -1,3 +1,8 @@
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+  // tslint:disable-next-line:no-var-requires
+  require("preact/debug");
+}
+
 import { render, h } from "preact";
 import { Main } from "./components/Main";
 import comfortaaRegular from "./fonts/Comfortaa-Regular.woff";
