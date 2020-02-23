@@ -7,6 +7,7 @@ export enum Feature {
 }
 
 export interface MazeOptions {
+  readonly blockChance: number;
   readonly radius: number;
   readonly ringCount: number;
   readonly minRoomWidth: number;
@@ -18,10 +19,10 @@ export interface Room {
   feature: Feature;
 }
 
-function createRoom(): Room {
+function createRoom(blockChance: number): Room {
   return {
-    isInnerBlocked: true,
-    isClockwiseBlocked: true,
+    isInnerBlocked: Math.random() <= blockChance,
+    isClockwiseBlocked: Math.random() <= blockChance,
     feature: Feature.None
   };
 }
@@ -33,6 +34,7 @@ export interface Maze {
 }
 
 export function generateMaze({
+  blockChance,
   radius,
   ringCount,
   minRoomWidth
@@ -44,21 +46,18 @@ export function generateMaze({
 
   if (ringCount < 1) return maze;
 
-  maze.rooms[0] = [createRoom()];
+  maze.rooms[0] = [createRoom(0)];
 
   if (ringCount === 1) return maze;
 
   const remainingRooms = ringCount - 2;
-  let roomCount = 2;
   for (let i = 0; i < remainingRooms; i++) {
     const ringRadius = i * radius * (1 / ringCount);
     const circumference = toCircumference(ringRadius);
     const maxRoomCount = Math.floor(circumference / minRoomWidth);
-    roomCount = nextPowerOfTwo(maxRoomCount);
-    // if (roomCount < maxRoomCount) {
-    // roomCount *= 2;
-    // }
-    maze.rooms.push(times(roomCount, createRoom));
+    maze.rooms.push(
+      times(nextPowerOfTwo(maxRoomCount), () => createRoom(blockChance))
+    );
   }
 
   return maze;

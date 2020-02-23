@@ -1,32 +1,28 @@
 import { h, createRef, Component } from "preact";
 import * as styles from "./GameView.css";
-import { generateMaze, Maze } from "../utility/mazeGenerator";
+import { generateMaze, Maze, MazeOptions } from "../utility/mazeGenerator";
 import { Vector2 } from "three";
 
-interface State {
-  readonly maze: Maze;
+interface Props {
+  mazeOptions: MazeOptions;
 }
 
-export class GameView extends Component<{}, State> {
+export class GameView extends Component<Props> {
   private canvasRef = createRef<HTMLCanvasElement>();
-  state: State = {
-    maze: generateMaze({ minRoomWidth: 60, radius: 300, ringCount: 10 })
-  };
-
-  // -- Callbacks --
-
-  private handleWheel = (event: WheelEvent) => {
-    // TODO: Zoom
-  };
 
   // -- Lifecycle --
 
-  shouldComponentUpdate() {
-    return false;
+  componentDidMount() {
+    this.redraw();
   }
 
-  componentDidMount() {
-    document.addEventListener("wheel", this.handleWheel);
+  componentWillUpdate() {
+    this.redraw();
+  }
+
+  // -- Private interface --
+
+  private redraw() {
     const canvas = this.canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
 
@@ -36,32 +32,49 @@ export class GameView extends Component<{}, State> {
 
     const center = new Vector2(width / 2, height / 2);
 
-    const { maze } = this.state;
+    const maze = generateMaze(this.props.mazeOptions);
     const { radius, rooms } = maze;
     const ringDepth = radius * (1 / rooms.length);
-    rooms.forEach(({ length: roomCount }, i) => {
+    rooms.forEach((rs, i) => {
       // Draw ring.
       const innerRadius = (i - 1) * ringDepth;
       const outerRadius = i * ringDepth;
-      ctx.beginPath();
-      ctx.arc(center.x, center.y, outerRadius, 0, Math.PI * 2);
-      ctx.strokeStyle = "white";
-      ctx.stroke();
 
       const firstRoomInner = center.clone().add(new Vector2(0, innerRadius));
       const firstRoomOuter = center.clone().add(new Vector2(0, outerRadius));
 
       // Draw radiual room separators.
-      const roomAngle = (Math.PI * 2) / roomCount;
-      for (let j = 0; j < roomCount; j++) {
-        const angle = j * roomAngle;
-        const roomInner = firstRoomInner.clone().rotateAround(center, angle);
-        const roomOuter = firstRoomOuter.clone().rotateAround(center, angle);
-        ctx.beginPath();
-        ctx.moveTo(roomInner.x, roomInner.y);
-        ctx.lineTo(roomOuter.x, roomOuter.y);
-        ctx.stroke();
-      }
+      const roomAngle = (Math.PI * 2) / rs.length;
+      rs.forEach((room, j) => {
+        const clockwiseAngle = j * roomAngle;
+        const counterClockwiseAngle = (j - 1) * roomAngle;
+
+        if (room.isInnerBlocked) {
+          ctx.beginPath();
+          ctx.arc(
+            center.x,
+            center.y,
+            outerRadius,
+            counterClockwiseAngle,
+            clockwiseAngle
+          );
+          ctx.strokeStyle = "white";
+          ctx.stroke();
+        }
+
+        if (room.isClockwiseBlocked) {
+          const roomInner = firstRoomInner
+            .clone()
+            .rotateAround(center, clockwiseAngle);
+          const roomOuter = firstRoomOuter
+            .clone()
+            .rotateAround(center, clockwiseAngle);
+          ctx.beginPath();
+          ctx.moveTo(roomInner.x, roomInner.y);
+          ctx.lineTo(roomOuter.x, roomOuter.y);
+          ctx.stroke();
+        }
+      });
     });
   }
 

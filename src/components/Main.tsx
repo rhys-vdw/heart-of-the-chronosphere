@@ -1,15 +1,23 @@
 import { Component, h } from "preact";
 import { Title } from "./Title";
 import { GameView } from "./GameView";
+import { MazeOptions } from "../utility/mazeGenerator";
 import * as styles from "./Main.css";
 
 interface State {
   readonly isPlaying: boolean;
+  readonly mazeOptions: MazeOptions;
 }
 
 export class Main extends Component<{}, State> {
   state: State = {
-    isPlaying: false
+    isPlaying: true,
+    mazeOptions: {
+      blockChance: 0.5,
+      minRoomWidth: 60,
+      radius: 300,
+      ringCount: 10
+    }
   };
 
   private handleNewGame = () => {
@@ -19,7 +27,7 @@ export class Main extends Component<{}, State> {
   render() {
     const { isPlaying } = this.state;
     const view = isPlaying ? (
-      <GameView />
+      <GameView mazeOptions={this.state.mazeOptions} />
     ) : (
       <Title onNewGame={this.handleNewGame} />
     );
