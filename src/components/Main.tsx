@@ -3,6 +3,7 @@ import { Title } from "./Title";
 import { GameView } from "./GameView";
 import { MazeOptions } from "../utility/mazeGenerator";
 import * as styles from "./Main.css";
+import { MazeGenerationForm } from "./MazeGenerationForm";
 
 interface State {
   readonly isPlaying: boolean;
@@ -11,7 +12,7 @@ interface State {
 
 export class Main extends Component<{}, State> {
   state: State = {
-    isPlaying: true,
+    isPlaying: false,
     mazeOptions: {
       blockChance: 0.5,
       minRoomWidth: 60,
@@ -24,6 +25,10 @@ export class Main extends Component<{}, State> {
     this.setState({ isPlaying: true });
   };
 
+  private handleMazeOptionsChange = (mazeOptions: MazeOptions) => {
+    this.setState({ mazeOptions });
+  };
+
   render() {
     const { isPlaying } = this.state;
     const view = isPlaying ? (
@@ -34,7 +39,12 @@ export class Main extends Component<{}, State> {
     return (
       <main className={styles.main}>
         <section className={styles.game}>{view}</section>
-        <section className={styles.status}>Status bar</section>
+        <section className={styles.status}>
+          <MazeGenerationForm
+            initialValues={this.state.mazeOptions}
+            onChange={this.handleMazeOptionsChange}
+          />
+        </section>
       </main>
     );
   }

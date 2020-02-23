@@ -50,9 +50,8 @@ export function generateMaze({
 
   if (ringCount === 1) return maze;
 
-  const remainingRooms = ringCount - 2;
-  for (let i = 0; i < remainingRooms; i++) {
-    const ringRadius = i * radius * (1 / ringCount);
+  for (let i = 1; i < ringCount; i++) {
+    const ringRadius = (i + 1) * radius * (1 / ringCount);
     const circumference = toCircumference(ringRadius);
     const maxRoomCount = Math.floor(circumference / minRoomWidth);
     maze.rooms.push(

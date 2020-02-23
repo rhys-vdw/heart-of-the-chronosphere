@@ -1,6 +1,6 @@
 import { h, createRef, Component } from "preact";
 import * as styles from "./GameView.css";
-import { generateMaze, Maze, MazeOptions } from "../utility/mazeGenerator";
+import { generateMaze, MazeOptions } from "../utility/mazeGenerator";
 import { Vector2 } from "three";
 
 interface Props {
@@ -12,11 +12,11 @@ export class GameView extends Component<Props> {
 
   // -- Lifecycle --
 
-  componentDidMount() {
+  componentDidUpdate() {
     this.redraw();
   }
 
-  componentWillUpdate() {
+  componentDidMount() {
     this.redraw();
   }
 
@@ -39,11 +39,18 @@ export class GameView extends Component<Props> {
 
     const maze = generateMaze(this.props.mazeOptions);
     const { radius, rooms } = maze;
+
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = "magenta";
+    ctx.stroke();
+    ctx.strokeStyle = "white";
+
     const ringDepth = radius * (1 / rooms.length);
     rooms.forEach((rs, i) => {
       // Draw ring.
-      const innerRadius = (i - 1) * ringDepth;
-      const outerRadius = i * ringDepth;
+      const innerRadius = i * ringDepth;
+      const outerRadius = (i + 1) * ringDepth;
 
       const firstRoomInner = center.clone().add(new Vector2(0, innerRadius));
       const firstRoomOuter = center.clone().add(new Vector2(0, outerRadius));
@@ -59,7 +66,7 @@ export class GameView extends Component<Props> {
           ctx.arc(
             center.x,
             center.y,
-            outerRadius,
+            innerRadius,
             counterClockwiseAngle,
             clockwiseAngle
           );
@@ -84,7 +91,7 @@ export class GameView extends Component<Props> {
   }
 
   render() {
-    const props = { ref: this.canvasRef, resize: true } as any;
-    return <canvas className={styles.canvas} {...props} />;
+    const canvasProps = { ref: this.canvasRef, resize: true } as any;
+    return <canvas className={styles.canvas} {...canvasProps} />;
   }
 }
