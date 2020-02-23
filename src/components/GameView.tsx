@@ -26,11 +26,16 @@ export class GameView extends Component<Props> {
     const canvas = this.canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
 
-    const { width, height } = canvas.getBoundingClientRect();
-    canvas.width = width;
-    canvas.height = height;
+    const cssBounds = canvas.getBoundingClientRect();
+    const resolution = new Vector2(
+      cssBounds.width,
+      cssBounds.height
+    ).multiplyScalar(window.devicePixelRatio);
+    canvas.width = resolution.x;
+    canvas.height = resolution.y;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
-    const center = new Vector2(width / 2, height / 2);
+    const center = resolution.clone().divideScalar(2 * window.devicePixelRatio);
 
     const maze = generateMaze(this.props.mazeOptions);
     const { radius, rooms } = maze;
