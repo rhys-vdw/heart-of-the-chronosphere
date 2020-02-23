@@ -1,10 +1,6 @@
 .button {
-  composes: box from "./shared.css";
-  background: transparent;
-  border-radius: 0;
+  composes: input from "./shared.css";
   padding: 0.5em 1em;
-  font-size: inherit;
-  cursor: pointer;
 }
 
 .button:hover {
