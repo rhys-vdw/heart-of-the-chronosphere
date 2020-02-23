@@ -81,7 +81,10 @@ module.exports = (env: WebpackEnvironment, argv: { mode: string }) => {
             {
               loader: "css-loader",
               options: {
-                modules: true,
+                modules:
+                  process.env.NODE_ENV === "production"
+                    ? true
+                    : { localIdentName: "[name]:[local]--[hash:base64:5]" },
                 esModule: true
               }
             }

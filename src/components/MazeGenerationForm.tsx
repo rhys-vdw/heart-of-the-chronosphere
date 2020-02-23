@@ -33,7 +33,7 @@ export class MazeGenerationForm extends Component<Props, State> {
     const { values } = this.state;
     return (
       <form
-        style={styles.container}
+        className={styles.container}
         action="javascript:void 0"
         onSubmit={this.handleSubmit}
       >
