@@ -58,8 +58,10 @@
   },
   "dependencies": {
     "@types/lodash": "4.14.149",
+    "@types/three": "0.103.2",
     "csstype": "2.6.9",
     "lodash": "4.17.15",
-    "preact": "8.5.3"
+    "preact": "8.5.3",
+    "three": "0.113.2"
   }
 }
