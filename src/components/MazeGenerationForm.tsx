@@ -2,7 +2,7 @@ import { h, Component } from "preact";
 import { MazeOptions } from "../utility/mazeGenerator";
 import { lowerCase, endsWith } from "lodash";
 import { Button } from "./Button";
-import * as styles from "./MazeGenerationForm.css";
+import styles from "./MazeGenerationForm.css";
 
 interface Props {
   initialValues: MazeOptions;

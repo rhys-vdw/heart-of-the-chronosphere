@@ -2,8 +2,10 @@ import { Component, h } from "preact";
 import { Title } from "./Title";
 import { GameView } from "./GameView";
 import { MazeOptions } from "../utility/mazeGenerator";
-import * as styles from "./Main.css";
 import { MazeGenerationForm } from "./MazeGenerationForm";
+import styles from "./Main.css";
+import * as foo from "./Main.css";
+console.log(foo);
 
 interface State {
   readonly isPlaying: boolean;

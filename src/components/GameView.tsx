@@ -1,5 +1,5 @@
 import { h, createRef, Component } from "preact";
-import * as styles from "./GameView.css";
+import styles from "./GameView.css";
 import { generateMaze, MazeOptions } from "../utility/mazeGenerator";
 import { Vector2 } from "three";
 

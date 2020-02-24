@@ -76,8 +76,8 @@ module.exports = (env: WebpackEnvironment, argv: { mode: string }) => {
           test: /\.css$/i,
           use: [
             // Doesn't work consistently for some reason...
-            // { loader: "style-loader", options: { esModule: true } },
-            { loader: "style-loader", options: { esModule: false } },
+            { loader: "style-loader", options: { esModule: true } },
+            // { loader: "style-loader", options: { esModule: false } },
             {
               loader: "css-loader",
               options: {

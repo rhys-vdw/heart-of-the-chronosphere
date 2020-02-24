@@ -1,5 +1,5 @@
 import { h } from "preact";
-import * as styles from "./Button.css";
+import styles from "./Button.css";
 
 type Props = Omit<JSX.HTMLAttributes, "className">;
 
