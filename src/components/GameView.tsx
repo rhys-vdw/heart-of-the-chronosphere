@@ -49,6 +49,10 @@ export class GameView extends Component<Props> {
     // this.redraw();
   }
 
+  componentWillUnmount() {
+    window.removeEventListener("resize", this.updateRendererSize);
+  }
+
   // -- Private interface --
 
   private updateRendererSize = () => {
