@@ -4,6 +4,11 @@ import { generateMaze, MazeOptions } from "../utility/mazeGenerator";
 import * as THREE from "three";
 // tslint:disable-next-line:no-duplicate-imports
 import { Scene, WebGLRenderer, Vector2, PerspectiveCamera } from "three";
+import * as p2 from "p2";
+
+const Layers = {
+  Environment: 0x01
+};
 
 interface Props {
   mazeOptions: MazeOptions;
@@ -15,6 +20,8 @@ export class GameView extends Component<Props> {
   private scene!: Scene;
   private camera!: PerspectiveCamera;
 
+  private world!: p2.World;
+
   // -- Lifecycle --
 
   shouldComponentUpdate() {
@@ -22,21 +29,73 @@ export class GameView extends Component<Props> {
   }
 
   componentDidMount() {
-    window.addEventListener("resize", this.updateRendererSize);
+    // -- Initialize physics world --
+
+    this.world = new p2.World();
+
+    const addStaticBox = (
+      x: number,
+      y: number,
+      angle: number,
+      width: number,
+      height: number
+    ) => {
+      const shape = new p2.Box({
+        collisionGroup: Layers.Environment,
+        width,
+        height
+      });
+      const body = new p2.Body({
+        position: [x, y],
+        angle
+      });
+      body.addShape(shape);
+      this.world.addBody(body);
+    };
+
+    for (let i = 0; i < 10; i++) {
+      addStaticBox(
+        Math.random() * 40 - 20,
+        Math.random() * 40 - 20,
+        Math.random() * 360,
+        Math.random() * 8 + 2,
+        Math.random() * 8 + 2
+      );
+    }
+
+    // -- Initialize renderer --
 
     const canvas = this.canvasRef.current!;
     this.scene = new Scene();
 
     this.camera = new PerspectiveCamera(75, 1, 0.1, 1000);
+    this.camera.position.z = 20;
+    window.addEventListener("wheel", this.handleWheel);
+
     this.renderer = new WebGLRenderer({ canvas });
 
     this.updateRendererSize();
+    window.addEventListener("resize", this.updateRendererSize);
 
     const geometry = new THREE.BoxGeometry();
     const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
     const cube = new THREE.Mesh(geometry, material);
     this.scene.add(cube);
-    this.camera.position.z = 5;
+
+    for (const body of this.world.bodies) {
+      const shape = body.shapes[0]!;
+      if (shape instanceof p2.Box) {
+        const g = new THREE.BoxGeometry(shape.width, shape.height, 0.01);
+        const box = new THREE.Mesh(g, material);
+        box.translateX(body.position[0]);
+        box.translateY(body.position[1]);
+        box.rotateZ(body.angle);
+        console.log(`pos=${shape.position}, angle=${shape.angle}`);
+        this.scene.add(box);
+      } else {
+        console.error(`Unhandled shape type ${typeof shape}`);
+      }
+    }
 
     const animate = () => {
       requestAnimationFrame(animate);
@@ -53,7 +112,11 @@ export class GameView extends Component<Props> {
     window.removeEventListener("resize", this.updateRendererSize);
   }
 
-  // -- Private interface --
+  // -- Event handlers --
+
+  private handleWheel = (event: WheelEvent) => {
+    this.camera.position.z += event.deltaY * 0.01;
+  };
 
   private updateRendererSize = () => {
     const canvas = this.canvasRef.current!;
@@ -65,6 +128,8 @@ export class GameView extends Component<Props> {
     this.renderer.setSize(bounds.width, bounds.height, false);
     this.renderer.setPixelRatio(window.devicePixelRatio);
   };
+
+  // -- Private interface --
 
   private redraw() {
     const canvas = this.canvasRef.current!;
