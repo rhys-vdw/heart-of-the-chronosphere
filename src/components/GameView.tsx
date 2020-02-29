@@ -1,7 +1,9 @@
 import { h, createRef, Component } from "preact";
 import * as styles from "./GameView.css";
 import { generateMaze, MazeOptions } from "../utility/mazeGenerator";
-import { Vector2 } from "three";
+import * as THREE from "three";
+// tslint:disable-next-line:no-duplicate-imports
+import { Scene, WebGLRenderer, Vector2, PerspectiveCamera } from "three";
 
 interface Props {
   mazeOptions: MazeOptions;
@@ -9,18 +11,56 @@ interface Props {
 
 export class GameView extends Component<Props> {
   private canvasRef = createRef<HTMLCanvasElement>();
+  private renderer!: WebGLRenderer;
+  private scene!: Scene;
+  private camera!: PerspectiveCamera;
 
   // -- Lifecycle --
 
-  componentDidUpdate() {
-    this.redraw();
+  shouldComponentUpdate() {
+    return false;
   }
 
   componentDidMount() {
-    this.redraw();
+    window.addEventListener("resize", this.updateRendererSize);
+
+    const canvas = this.canvasRef.current!;
+    this.scene = new Scene();
+
+    this.camera = new PerspectiveCamera(75, 1, 0.1, 1000);
+    this.renderer = new WebGLRenderer({ canvas });
+
+    this.updateRendererSize();
+
+    const geometry = new THREE.BoxGeometry();
+    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    const cube = new THREE.Mesh(geometry, material);
+    this.scene.add(cube);
+    this.camera.position.z = 5;
+
+    const animate = () => {
+      requestAnimationFrame(animate);
+      cube.rotation.x += 0.01;
+      cube.rotation.y += 0.01;
+      this.renderer.render(this.scene, this.camera);
+    };
+    animate();
+
+    // this.redraw();
   }
 
   // -- Private interface --
+
+  private updateRendererSize = () => {
+    const canvas = this.canvasRef.current!;
+    const bounds = canvas.getBoundingClientRect();
+
+    this.camera.aspect = bounds.width / bounds.height;
+    this.camera.updateProjectionMatrix();
+
+    this.renderer.setSize(bounds.width, bounds.height, false);
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+  };
 
   private redraw() {
     const canvas = this.canvasRef.current!;
