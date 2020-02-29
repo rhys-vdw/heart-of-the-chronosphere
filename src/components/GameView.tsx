@@ -3,8 +3,16 @@ import * as styles from "./GameView.css";
 import { generateMaze, MazeOptions } from "../utility/mazeGenerator";
 import * as THREE from "three";
 // tslint:disable-next-line:no-duplicate-imports
-import { Scene, WebGLRenderer, Vector2, PerspectiveCamera } from "three";
+import {
+  Scene,
+  WebGLRenderer,
+  Vector2,
+  PerspectiveCamera,
+  Vector
+} from "three";
 import * as p2 from "p2";
+
+const wallWidth = 1;
 
 const Layers = {
   Environment: 0x01
@@ -33,35 +41,58 @@ export class GameView extends Component<Props> {
 
     this.world = new p2.World();
 
-    const addStaticBox = (
-      x: number,
-      y: number,
-      angle: number,
-      width: number,
-      height: number
-    ) => {
+    const addWall = (from: Vector2, to: Vector2) => {
+      const line = to.clone().sub(from);
       const shape = new p2.Box({
         collisionGroup: Layers.Environment,
-        width,
-        height
+        width: line.length(),
+        height: wallWidth
       });
+      const wallCenter = from.add(line.clone().divideScalar(2));
       const body = new p2.Body({
-        position: [x, y],
-        angle
+        position: wallCenter.toArray() as [number, number],
+        angle: line.angle()
       });
       body.addShape(shape);
       this.world.addBody(body);
     };
 
-    for (let i = 0; i < 10; i++) {
-      addStaticBox(
-        Math.random() * 40 - 20,
-        Math.random() * 40 - 20,
-        Math.random() * 360,
-        Math.random() * 8 + 2,
-        Math.random() * 8 + 2
-      );
-    }
+    const center = new Vector2(0, 0);
+    const { radius, rooms } = generateMaze(this.props.mazeOptions);
+    const ringDepth = radius * (1 / rooms.length);
+    rooms.forEach((rs, i) => {
+      // Draw ring.
+      const innerRadius = i * ringDepth;
+      const outerRadius = (i + 1) * ringDepth;
+
+      const firstRoomInner = new Vector2(0, innerRadius);
+      const firstRoomOuter = new Vector2(0, outerRadius);
+
+      // Draw radiual room separators.
+      const roomAngle = (Math.PI * 2) / rs.length;
+      rs.forEach((room, j) => {
+        const clockwiseAngle = j * roomAngle;
+        const counterClockwiseAngle = (j - 1) * roomAngle;
+
+        const roomInner = firstRoomInner
+          .clone()
+          .rotateAround(center, clockwiseAngle);
+
+        if (room.isInnerBlocked) {
+          const roomInnerStart = firstRoomInner
+            .clone()
+            .rotateAround(center, counterClockwiseAngle);
+          addWall(roomInnerStart, roomInner);
+        }
+
+        if (room.isClockwiseBlocked) {
+          const roomOuter = firstRoomOuter
+            .clone()
+            .rotateAround(center, clockwiseAngle);
+          addWall(roomInner, roomOuter);
+        }
+      });
+    });
 
     // -- Initialize renderer --
 
