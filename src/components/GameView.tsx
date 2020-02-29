@@ -2,13 +2,17 @@ import { h, createRef, Component } from "preact";
 import * as styles from "./GameView.css";
 import { generateMaze, MazeOptions } from "../utility/mazeGenerator";
 import * as THREE from "three";
+import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry";
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial";
+import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2";
 // tslint:disable-next-line:no-duplicate-imports
 import {
   Scene,
   WebGLRenderer,
   Vector2,
   PerspectiveCamera,
-  Vector
+  Vector3,
+  Line
 } from "three";
 import * as p2 from "p2";
 
@@ -42,16 +46,16 @@ export class GameView extends Component<Props> {
     this.world = new p2.World();
 
     const addWall = (from: Vector2, to: Vector2) => {
-      const line = to.clone().sub(from);
+      const wallLine = to.clone().sub(from);
       const shape = new p2.Box({
         collisionGroup: Layers.Environment,
-        width: line.length(),
+        width: wallLine.length(),
         height: wallWidth
       });
-      const wallCenter = from.add(line.clone().divideScalar(2));
+      const wallCenter = from.add(wallLine.clone().divideScalar(2));
       const body = new p2.Body({
         position: wallCenter.toArray() as [number, number],
-        angle: line.angle()
+        angle: wallLine.angle()
       });
       body.addShape(shape);
       this.world.addBody(body);
@@ -60,11 +64,14 @@ export class GameView extends Component<Props> {
     const center = new Vector2(0, 0);
     const { radius, rooms } = generateMaze(this.props.mazeOptions);
     const ringDepth = radius * (1 / rooms.length);
+    const points: Vector3[] = [];
+    const positions: number[] = [];
     rooms.forEach((rs, i) => {
       // Draw ring.
       const innerRadius = i * ringDepth;
       const outerRadius = (i + 1) * ringDepth;
 
+      // Get the inner and router point of the first room.
       const firstRoomInner = new Vector2(0, innerRadius);
       const firstRoomOuter = new Vector2(0, outerRadius);
 
@@ -82,6 +89,18 @@ export class GameView extends Component<Props> {
           const roomInnerStart = firstRoomInner
             .clone()
             .rotateAround(center, counterClockwiseAngle);
+          points.push(
+            new Vector3(roomInnerStart.x, roomInnerStart.y, 0),
+            new Vector3(roomInner.x, roomInner.y, 0)
+          );
+          positions.push(
+            roomInnerStart.x,
+            roomInnerStart.y,
+            0,
+            roomInner.x,
+            roomInner.y,
+            0
+          );
           addWall(roomInnerStart, roomInner);
         }
 
@@ -89,6 +108,10 @@ export class GameView extends Component<Props> {
           const roomOuter = firstRoomOuter
             .clone()
             .rotateAround(center, clockwiseAngle);
+          points.push(
+            new Vector3(roomInner.x, roomInner.y, 0),
+            new Vector3(roomOuter.x, roomOuter.y, 0)
+          );
           addWall(roomInner, roomOuter);
         }
       });
@@ -100,7 +123,7 @@ export class GameView extends Component<Props> {
     this.scene = new Scene();
 
     this.camera = new PerspectiveCamera(75, 1, 0.1, 1000);
-    this.camera.position.z = 20;
+    this.camera.position.z = 400;
     window.addEventListener("wheel", this.handleWheel);
 
     this.renderer = new WebGLRenderer({ canvas });
@@ -113,6 +136,41 @@ export class GameView extends Component<Props> {
     const cube = new THREE.Mesh(geometry, material);
     this.scene.add(cube);
 
+    const lg = new LineSegmentsGeometry();
+    lg.setPositions(positions);
+
+    // const lbg = new THREE.BufferGeometry();
+    // lbg.setAttribute(
+    //   "positions",
+    //   new THREE.Float32BufferAttribute(positions, 3)
+    // );
+    const lgg = new THREE.Geometry();
+    lgg.vertices = points;
+    // const l = new THREE.LineSegments(
+    //   lgg,
+    //   new THREE.LineBasicMaterial({ color: 0xffffff })
+    // );
+    // l.computeLineDistances();
+    const l = new THREE.LineSegments(lgg);
+    l.visible = true;
+    this.scene.add(l);
+
+    const matLine = new LineMaterial({
+      color: 0xffffff,
+      linewidth: 10, // in pixels
+      // vertexColors: true,
+      // resolution:  // to be set by renderer, eventually
+      dashed: false
+    });
+    // const ls = new THREE.LineSegments();
+    // const lg = new THREE.Geometry();
+    // lg.vertices = positions;
+
+    const line = new LineSegments2(lg, matLine);
+    line.computeLineDistances();
+    line.scale.set(1, 1, 1);
+    // this.scene.add(line);
+
     for (const body of this.world.bodies) {
       const shape = body.shapes[0]!;
       if (shape instanceof p2.Box) {
@@ -122,7 +180,7 @@ export class GameView extends Component<Props> {
         box.translateY(body.position[1]);
         box.rotateZ(body.angle);
         console.log(`pos=${shape.position}, angle=${shape.angle}`);
-        this.scene.add(box);
+        // this.scene.add(box);
       } else {
         console.error(`Unhandled shape type ${typeof shape}`);
       }

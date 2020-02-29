@@ -12,7 +12,7 @@ interface State {
 
 export class Main extends Component<{}, State> {
   state: State = {
-    isPlaying: true,
+    isPlaying: false,
     mazeOptions: {
       blockChance: 0.5,
       minRoomWidth: 60,
