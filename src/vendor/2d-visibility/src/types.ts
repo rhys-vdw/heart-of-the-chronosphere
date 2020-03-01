@@ -21,21 +21,6 @@ export interface ISegment {
   d: number;
 }
 
-export const Rectangle = (
-  x: number,
-  y: number,
-  width: number,
-  height: number
-): IRectangle => ({
-  x,
-  y,
-  width,
-  height
-});
-
-export const Block = Rectangle;
-export const Room = Rectangle;
-
 export const createSegment = (
   x1: number,
   y1: number,
