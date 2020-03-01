@@ -1,7 +1,5 @@
 import { Segment, IRectangle, ISegment, IPoint, IEndPoint } from "./types";
 
-const { atan2, PI: π } = Math;
-
 const getCorners = ({ x, y, width, height }: IRectangle) => ({
   nw: [x, y] as const,
   sw: [x, y + height] as const,
@@ -34,15 +32,15 @@ function calculateEndPointAngles(
   const dy = 0.5 * (segment.p1.y + segment.p2.y) - y;
 
   segment.d = dx * dx + dy * dy;
-  segment.p1.angle = atan2(segment.p1.y - y, segment.p1.x - x);
-  segment.p2.angle = atan2(segment.p2.y - y, segment.p2.x - x);
+  segment.p1.angle = Math.atan2(segment.p1.y - y, segment.p1.x - x);
+  segment.p2.angle = Math.atan2(segment.p2.y - y, segment.p2.x - x);
 }
 
 function setSegmentBeginning(segment: ISegment): void {
   let dAngle = segment.p2.angle - segment.p1.angle;
 
-  if (dAngle <= -π) dAngle += 2 * π;
-  if (dAngle > π) dAngle -= 2 * π;
+  if (dAngle <= -Math.PI) dAngle += 2 * Math.PI;
+  if (dAngle > Math.PI) dAngle -= 2 * Math.PI;
 
   segment.p1.beginsSegment = dAngle > 0;
   segment.p2.beginsSegment = !segment.p1.beginsSegment;
