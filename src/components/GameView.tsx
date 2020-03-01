@@ -11,16 +11,14 @@ import {
   Vector3,
   Mesh,
   Geometry,
-  LineSegments
+  LineSegments,
+  Plane,
+  Raycaster
 } from "three";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
 import { Segment, Point } from "../vendor/2d-visibility/src/types";
 import { mazeToMap, Map } from "../utility/Map";
-
-interface Props {
-  mazeOptions: MazeOptions;
-}
 
 const wallMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
 const viewMaterial = new THREE.MeshBasicMaterial({
@@ -28,6 +26,7 @@ const viewMaterial = new THREE.MeshBasicMaterial({
   opacity: 0.2,
   transparent: true
 });
+const horizontalPlane = new Plane(new Vector3(0, 0, 1), 0);
 
 function createWallPoints(walls: readonly Segment[]) {
   return walls.flatMap(w => [
@@ -43,6 +42,10 @@ function generateState(mazeOptions: MazeOptions) {
     maze,
     map
   };
+}
+
+interface Props {
+  readonly mazeOptions: MazeOptions;
 }
 
 interface State {
@@ -107,14 +110,6 @@ export class GameView extends Component<Props, State> {
 
     // Start rendering.
 
-    setInterval(() => {
-      this.position = {
-        x: Math.random() * 300 - 150,
-        y: Math.random() * 300 - 150
-      };
-      this.updateVisibilityPolygon();
-    }, 1000);
-
     const animate = () => {
       requestAnimationFrame(animate);
       this.renderer.render(this.scene, this.camera);
@@ -129,10 +124,36 @@ export class GameView extends Component<Props, State> {
 
   render() {
     const canvasProps = { ref: this.canvasRef, resize: true } as any;
-    return <canvas className={styles.canvas} {...canvasProps} />;
+    return (
+      <canvas
+        className={styles.canvas}
+        onMouseMove={this.handleMouseDown}
+        {...canvasProps}
+      />
+    );
   }
 
   // -- Event handlers --
+
+  private raycaster = new Raycaster();
+  private handleMouseDown = (event: MouseEvent) => {
+    const {
+      x,
+      y,
+      width,
+      height
+    } = this.canvasRef.current!.getBoundingClientRect();
+    const position = new Vector2(
+      ((event.x - x) / width) * 2 - 1,
+      -((event.y - y) / height) * 2 + 1
+    );
+    this.raycaster.setFromCamera(position, this.camera);
+    const target = new Vector3();
+    this.raycaster.ray.intersectPlane(horizontalPlane, target);
+    this.position = { x: target.x, y: target.y };
+    this.updateVisibilityPolygon();
+    console.log("Click!", this.position);
+  };
 
   private handleWheel = (event: WheelEvent) => {
     this.camera.position.z += event.deltaY * 0.01;
@@ -153,6 +174,8 @@ export class GameView extends Component<Props, State> {
 
   private updateWallLines() {
     // Doesn't update excess points
+    // Fix: https://stackoverflow.com/a/31411794/317135
+    //
     // const geometry = this.wallLineSegments.geometry as Geometry;
     // geometry.setFromPoints(createWallPoints(this.state.map.walls));
     // geometry.verticesNeedUpdate = true;
