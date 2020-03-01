@@ -1,16 +1,16 @@
 import { segmentInFrontOf } from "./segmentInFrontOf";
 import { endpointCompare } from "./endpointCompare";
 import { lineIntersection } from "./lineIntersection";
-import { IPoint, IEndPoint, ISegment } from "./types";
+import { Point, EndPoint, Segment } from "./types";
 
-export type IVisibility = ReadonlyArray<Readonly<[IPoint, IPoint]>>;
+export type IVisibility = ReadonlyArray<Readonly<[Point, Point]>>;
 
 function getTrianglePoints(
-  origin: IPoint,
+  origin: Point,
   angle1: number,
   angle2: number,
-  segment: ISegment
-): [IPoint, IPoint] {
+  segment: Segment
+): [Point, Point] {
   const p1 = origin;
   const p2 = { x: origin.x + Math.cos(angle1), y: origin.y + Math.sin(angle1) };
   const p3 = { x: 0, y: 0 };
@@ -39,8 +39,8 @@ function getTrianglePoints(
 }
 
 export function calculateVisibility(
-  origin: IPoint,
-  endpoints: readonly Readonly<IEndPoint>[]
+  origin: Point,
+  endpoints: readonly Readonly<EndPoint>[]
 ): IVisibility {
   const openSegments = [];
   const output = [];

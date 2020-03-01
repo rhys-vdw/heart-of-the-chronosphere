@@ -12,7 +12,7 @@ import {
 } from "three";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
-import { ISegment, createSegment } from "../vendor/2d-visibility/src/types";
+import { Segment, createSegment } from "../vendor/2d-visibility/src/types";
 
 const Layers = {
   Environment: 0x01
@@ -44,7 +44,7 @@ export class GameView extends Component<Props> {
   componentDidMount() {
     // -- Initialize physics world --
 
-    const segments: ISegment[] = [];
+    const segments: Segment[] = [];
     const points: Vector3[] = [];
 
     const addWall = (from: Vector2, to: Vector2) => {

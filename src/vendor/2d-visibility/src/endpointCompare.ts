@@ -1,8 +1,8 @@
-import { IEndPoint } from "./types";
+import { EndPoint } from "./types";
 
 export function endpointCompare(
-  pointA: IEndPoint,
-  pointB: IEndPoint
+  pointA: EndPoint,
+  pointB: EndPoint
 ): -1 | 0 | 1 {
   if (pointA.angle > pointB.angle) return 1;
   if (pointA.angle < pointB.angle) return -1;

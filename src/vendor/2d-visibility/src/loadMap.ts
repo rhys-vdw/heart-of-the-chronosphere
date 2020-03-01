@@ -1,12 +1,6 @@
-import {
-  createSegment,
-  IRectangle,
-  ISegment,
-  IPoint,
-  IEndPoint
-} from "./types";
+import { createSegment, Box, Segment, Point, EndPoint } from "./types";
 
-const getCorners = ({ x, y, width, height }: IRectangle) => ({
+const getCorners = ({ x, y, width, height }: Box) => ({
   nw: [x, y] as const,
   sw: [x, y + height] as const,
   ne: [x + width, y] as const,
@@ -16,10 +10,10 @@ const getCorners = ({ x, y, width, height }: IRectangle) => ({
 function pointsToSegment(
   a: readonly [number, number],
   b: readonly [number, number]
-): ISegment {
+): Segment {
   return createSegment(a[0], a[1], b[0], b[1]);
 }
-function rectangleToSegments(rectangle: IRectangle): ISegment[] {
+function rectangleToSegments(rectangle: Box): Segment[] {
   const { nw, sw, ne, se } = getCorners(rectangle);
   return [
     pointsToSegment(nw, ne),
@@ -29,7 +23,7 @@ function rectangleToSegments(rectangle: IRectangle): ISegment[] {
   ];
 }
 
-function calculateEndPointAngles(lightSource: IPoint, segment: ISegment): void {
+function calculateEndPointAngles(lightSource: Point, segment: Segment): void {
   const { x, y } = lightSource;
   const dx = 0.5 * (segment.p1.x + segment.p2.x) - x;
   const dy = 0.5 * (segment.p1.y + segment.p2.y) - y;
@@ -39,7 +33,7 @@ function calculateEndPointAngles(lightSource: IPoint, segment: ISegment): void {
   segment.p2.angle = Math.atan2(segment.p2.y - y, segment.p2.x - x);
 }
 
-function setSegmentBeginning(segment: ISegment): void {
+function setSegmentBeginning(segment: Segment): void {
   let dAngle = segment.p2.angle - segment.p1.angle;
 
   if (dAngle <= -Math.PI) dAngle += 2 * Math.PI;
@@ -50,9 +44,9 @@ function setSegmentBeginning(segment: ISegment): void {
 }
 
 function processSegments(
-  lightSource: IPoint,
-  segments: readonly ISegment[]
-): readonly ISegment[] {
+  lightSource: Point,
+  segments: readonly Segment[]
+): readonly Segment[] {
   segments.forEach(segment => {
     calculateEndPointAngles(lightSource, segment);
     setSegmentBeginning(segment);
@@ -61,11 +55,11 @@ function processSegments(
 }
 
 export function loadMap(
-  room: IRectangle,
-  blocks: readonly IRectangle[],
-  walls: readonly ISegment[],
-  lightSource: IPoint
-): ReadonlyArray<Readonly<IEndPoint>> {
+  room: Box,
+  blocks: readonly Box[],
+  walls: readonly Segment[],
+  lightSource: Point
+): ReadonlyArray<Readonly<EndPoint>> {
   const segments = processSegments(lightSource, [
     ...rectangleToSegments(room),
     ...blocks.flatMap(rectangleToSegments),

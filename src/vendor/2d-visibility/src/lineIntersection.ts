@@ -1,11 +1,11 @@
-import { IPoint } from "./types";
+import { Point } from "./types";
 
 export function lineIntersection(
-  point1: IPoint,
-  point2: IPoint,
-  point3: IPoint,
-  point4: IPoint
-): IPoint {
+  point1: Point,
+  point2: Point,
+  point3: Point,
+  point4: Point
+): Point {
   const s =
     ((point4.x - point3.x) * (point1.y - point3.y) -
       (point4.y - point3.y) * (point1.x - point3.x)) /

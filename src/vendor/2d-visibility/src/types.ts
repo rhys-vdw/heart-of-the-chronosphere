@@ -1,22 +1,22 @@
-export interface IPoint {
+export interface Point {
   readonly x: number;
   readonly y: number;
 }
 
-export interface IRectangle extends IPoint {
+export interface Box extends Point {
   readonly width: number;
   readonly height: number;
 }
 
-export interface IEndPoint extends IPoint {
+export interface EndPoint extends Point {
   beginsSegment?: boolean;
-  segment: ISegment;
+  segment: Segment;
   angle: number;
 }
 
-export interface ISegment {
-  readonly p1: IEndPoint;
-  readonly p2: IEndPoint;
+export interface Segment {
+  readonly p1: EndPoint;
+  readonly p2: EndPoint;
   /** Distance from light source to midpoint of segment */
   d: number;
 }
@@ -26,7 +26,7 @@ export const createSegment = (
   y1: number,
   x2: number,
   y2: number
-): ISegment => {
+): Segment => {
   const p1: any = { x: x1, y: y1, angle: 0, segment: null };
   const p2: any = { x: x2, y: y2, angle: 0, segment: null };
   const segment: any = { p1, p2, d: 0 };
