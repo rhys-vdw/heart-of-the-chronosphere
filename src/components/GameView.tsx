@@ -18,10 +18,6 @@ import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
 import { Segment, Point } from "../vendor/2d-visibility/src/types";
 import { mazeToMap, Map } from "../utility/Map";
 
-const Layers = {
-  Environment: 0x01
-};
-
 interface Props {
   mazeOptions: MazeOptions;
 }
