@@ -7,8 +7,6 @@ export type IVisibility = ReadonlyArray<
   Readonly<[Readonly<IPoint>, Readonly<IPoint>]>
 >;
 
-const { cos, sin } = Math;
-
 function getTrianglePoints(
   origin: IPoint,
   angle1: number,
@@ -16,7 +14,7 @@ function getTrianglePoints(
   segment: ISegment
 ): [IPoint, IPoint] {
   const p1 = origin;
-  const p2 = Point(origin.x + cos(angle1), origin.y + sin(angle1));
+  const p2 = Point(origin.x + Math.cos(angle1), origin.y + Math.sin(angle1));
   const p3 = Point(0, 0);
   const p4 = Point(0, 0);
 
@@ -26,16 +24,16 @@ function getTrianglePoints(
     p4.x = segment.p2.x;
     p4.y = segment.p2.y;
   } else {
-    p3.x = origin.x + cos(angle1) * 200;
-    p3.y = origin.y + sin(angle1) * 200;
-    p4.x = origin.x + cos(angle2) * 200;
-    p4.y = origin.y + sin(angle2) * 200;
+    p3.x = origin.x + Math.cos(angle1) * 200;
+    p3.y = origin.y + Math.sin(angle1) * 200;
+    p4.x = origin.x + Math.cos(angle2) * 200;
+    p4.y = origin.y + Math.sin(angle2) * 200;
   }
 
   const pBegin = lineIntersection(p3, p4, p1, p2);
 
-  p2.x = origin.x + cos(angle2);
-  p2.y = origin.y + sin(angle2);
+  p2.x = origin.x + Math.cos(angle2);
+  p2.y = origin.y + Math.sin(angle2);
 
   const pEnd = lineIntersection(p3, p4, p1, p2);
 
