@@ -66,36 +66,6 @@ export class GameView extends Component<Props, State> {
 
   // -- Lifecycle --
 
-  redraw() {
-    const { map, maze } = this.state;
-    const { position } = this;
-
-    // Update view polygon.
-
-    const { endPoints, meta } = loadMap(
-      {
-        x: -maze.radius,
-        y: -maze.radius,
-        width: maze.radius * 2,
-        height: maze.radius * 2
-      },
-      [],
-      map.walls,
-      position
-    );
-    const visibility = calculateVisibility(position, endPoints, meta);
-    const viewGeometry = this.viewMesh.geometry as Geometry;
-    viewGeometry.vertices = [new Vector3(position.x, position.y, 0)];
-    viewGeometry.faces.length = 0;
-    visibility.reduce((acc, [a, b], i) => {
-      acc.vertices.push(new Vector3(a.x, a.y, 0));
-      acc.vertices.push(new Vector3(b.x, b.y, 0));
-      acc.faces.push(new THREE.Face3(0, i * 2 + 1, i * 2 + 2));
-      return acc;
-    }, viewGeometry);
-    viewGeometry.elementsNeedUpdate = true;
-  }
-
   componentDidMount() {
     const { map } = this.state;
 
@@ -145,6 +115,11 @@ export class GameView extends Component<Props, State> {
     window.removeEventListener("wheel", this.handleWheel);
   }
 
+  render() {
+    const canvasProps = { ref: this.canvasRef, resize: true } as any;
+    return <canvas className={styles.canvas} {...canvasProps} />;
+  }
+
   // -- Event handlers --
 
   private handleWheel = (event: WheelEvent) => {
@@ -164,8 +139,33 @@ export class GameView extends Component<Props, State> {
 
   // -- Private interface --
 
-  render() {
-    const canvasProps = { ref: this.canvasRef, resize: true } as any;
-    return <canvas className={styles.canvas} {...canvasProps} />;
+  redraw() {
+    const { map, maze } = this.state;
+    const { position } = this;
+
+    // Update view polygon.
+
+    const { endPoints, meta } = loadMap(
+      {
+        x: -maze.radius,
+        y: -maze.radius,
+        width: maze.radius * 2,
+        height: maze.radius * 2
+      },
+      [],
+      map.walls,
+      position
+    );
+    const visibility = calculateVisibility(position, endPoints, meta);
+    const viewGeometry = this.viewMesh.geometry as Geometry;
+    viewGeometry.vertices = [new Vector3(position.x, position.y, 0)];
+    viewGeometry.faces.length = 0;
+    visibility.reduce((acc, [a, b], i) => {
+      acc.vertices.push(new Vector3(a.x, a.y, 0));
+      acc.vertices.push(new Vector3(b.x, b.y, 0));
+      acc.faces.push(new THREE.Face3(0, i * 2 + 1, i * 2 + 2));
+      return acc;
+    }, viewGeometry);
+    viewGeometry.elementsNeedUpdate = true;
   }
 }
