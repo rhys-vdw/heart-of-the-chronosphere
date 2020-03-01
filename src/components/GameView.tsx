@@ -30,6 +30,15 @@ const viewMaterial = new THREE.MeshBasicMaterial({
   transparent: true
 });
 
+function createWallGeometry(walls: readonly Segment[]) {
+  const wallGeometry = new THREE.Geometry();
+  wallGeometry.vertices = walls.flatMap(w => [
+    new Vector3(w.p1.x, w.p1.y, 0),
+    new Vector3(w.p2.x, w.p2.y, 0)
+  ]);
+  return new THREE.LineSegments(wallGeometry, wallMaterial);
+}
+
 export class GameView extends Component<Props> {
   private canvasRef = createRef<HTMLCanvasElement>();
   private renderer!: WebGLRenderer;
@@ -54,13 +63,7 @@ export class GameView extends Component<Props> {
 
     // Create view of map walls.
 
-    const wallGeometry = new THREE.Geometry();
-    wallGeometry.vertices = map.walls.flatMap(w => [
-      new Vector3(w.p1.x, w.p1.y, 0),
-      new Vector3(w.p2.x, w.p2.y, 0)
-    ]);
-    const wallLineSegments = new THREE.LineSegments(wallGeometry, wallMaterial);
-    wallLineSegments.visible = true;
+    const wallLineSegments = createWallGeometry(map.walls);
     this.scene.add(wallLineSegments);
 
     // Calculate view polygon.
