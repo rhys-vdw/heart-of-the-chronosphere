@@ -2,17 +2,13 @@ import { h, createRef, Component } from "preact";
 import * as styles from "./GameView.css";
 import { generateMaze, MazeOptions } from "../utility/mazeGenerator";
 import * as THREE from "three";
-import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry";
-import { LineMaterial } from "three/examples/jsm/lines/LineMaterial";
-import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2";
 // tslint:disable-next-line:no-duplicate-imports
 import {
   Scene,
   WebGLRenderer,
   Vector2,
   PerspectiveCamera,
-  Vector3,
-  Line
+  Vector3
 } from "three";
 import * as p2 from "p2";
 
@@ -131,70 +127,20 @@ export class GameView extends Component<Props> {
     this.updateRendererSize();
     window.addEventListener("resize", this.updateRendererSize);
 
-    const geometry = new THREE.BoxGeometry();
-    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    const cube = new THREE.Mesh(geometry, material);
-    this.scene.add(cube);
-
-    const lg = new LineSegmentsGeometry();
-    lg.setPositions(positions);
-
-    // const lbg = new THREE.BufferGeometry();
-    // lbg.setAttribute(
-    //   "positions",
-    //   new THREE.Float32BufferAttribute(positions, 3)
-    // );
-    const lgg = new THREE.Geometry();
-    lgg.vertices = points;
-    // const l = new THREE.LineSegments(
-    //   lgg,
-    //   new THREE.LineBasicMaterial({ color: 0xffffff })
-    // );
-    // l.computeLineDistances();
-    const l = new THREE.LineSegments(lgg);
-    l.visible = true;
-    this.scene.add(l);
-
-    const matLine = new LineMaterial({
-      color: 0xffffff,
-      linewidth: 10, // in pixels
-      // vertexColors: true,
-      // resolution:  // to be set by renderer, eventually
-      dashed: false
-    });
-    // const ls = new THREE.LineSegments();
-    // const lg = new THREE.Geometry();
-    // lg.vertices = positions;
-
-    const line = new LineSegments2(lg, matLine);
-    line.computeLineDistances();
-    line.scale.set(1, 1, 1);
-    // this.scene.add(line);
-
-    for (const body of this.world.bodies) {
-      const shape = body.shapes[0]!;
-      if (shape instanceof p2.Box) {
-        const g = new THREE.BoxGeometry(shape.width, shape.height, 0.01);
-        const box = new THREE.Mesh(g, material);
-        box.translateX(body.position[0]);
-        box.translateY(body.position[1]);
-        box.rotateZ(body.angle);
-        console.log(`pos=${shape.position}, angle=${shape.angle}`);
-        // this.scene.add(box);
-      } else {
-        console.error(`Unhandled shape type ${typeof shape}`);
-      }
-    }
+    const wallGeometry = new THREE.Geometry();
+    wallGeometry.vertices = points;
+    const wallLineSegments = new THREE.LineSegments(
+      wallGeometry,
+      new THREE.LineBasicMaterial({ color: 0xffffff })
+    );
+    wallLineSegments.visible = true;
+    this.scene.add(wallLineSegments);
 
     const animate = () => {
       requestAnimationFrame(animate);
-      cube.rotation.x += 0.01;
-      cube.rotation.y += 0.01;
       this.renderer.render(this.scene, this.camera);
     };
     animate();
-
-    // this.redraw();
   }
 
   componentWillUnmount() {
@@ -219,74 +165,6 @@ export class GameView extends Component<Props> {
   };
 
   // -- Private interface --
-
-  private redraw() {
-    const canvas = this.canvasRef.current!;
-    const ctx = canvas.getContext("2d")!;
-
-    const cssBounds = canvas.getBoundingClientRect();
-    const resolution = new Vector2(
-      cssBounds.width,
-      cssBounds.height
-    ).multiplyScalar(window.devicePixelRatio);
-    canvas.width = resolution.x;
-    canvas.height = resolution.y;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-
-    const center = resolution.clone().divideScalar(2 * window.devicePixelRatio);
-
-    const maze = generateMaze(this.props.mazeOptions);
-    const { radius, rooms } = maze;
-
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
-    ctx.strokeStyle = "magenta";
-    ctx.stroke();
-    ctx.strokeStyle = "white";
-
-    const ringDepth = radius * (1 / rooms.length);
-    rooms.forEach((rs, i) => {
-      // Draw ring.
-      const innerRadius = i * ringDepth;
-      const outerRadius = (i + 1) * ringDepth;
-
-      const firstRoomInner = center.clone().add(new Vector2(0, innerRadius));
-      const firstRoomOuter = center.clone().add(new Vector2(0, outerRadius));
-
-      // Draw radiual room separators.
-      const roomAngle = (Math.PI * 2) / rs.length;
-      rs.forEach((room, j) => {
-        const clockwiseAngle = j * roomAngle;
-        const counterClockwiseAngle = (j - 1) * roomAngle;
-
-        if (room.isInnerBlocked) {
-          ctx.beginPath();
-          ctx.arc(
-            center.x,
-            center.y,
-            innerRadius,
-            counterClockwiseAngle,
-            clockwiseAngle
-          );
-          ctx.strokeStyle = "white";
-          ctx.stroke();
-        }
-
-        if (room.isClockwiseBlocked) {
-          const roomInner = firstRoomInner
-            .clone()
-            .rotateAround(center, clockwiseAngle);
-          const roomOuter = firstRoomOuter
-            .clone()
-            .rotateAround(center, clockwiseAngle);
-          ctx.beginPath();
-          ctx.moveTo(roomInner.x, roomInner.y);
-          ctx.lineTo(roomOuter.x, roomOuter.y);
-          ctx.stroke();
-        }
-      });
-    });
-  }
 
   render() {
     const canvasProps = { ref: this.canvasRef, resize: true } as any;
