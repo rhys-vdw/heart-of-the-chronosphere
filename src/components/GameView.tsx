@@ -116,6 +116,7 @@ export class GameView extends Component<Props> {
 
   componentWillUnmount() {
     window.removeEventListener("resize", this.updateRendererSize);
+    window.removeEventListener("wheel", this.handleWheel);
   }
 
   // -- Event handlers --
