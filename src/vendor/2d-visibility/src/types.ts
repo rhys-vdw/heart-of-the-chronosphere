@@ -36,11 +36,6 @@ export const Rectangle = (
 export const Block = Rectangle;
 export const Room = Rectangle;
 
-export const Point = (x: number, y: number) => ({
-  x,
-  y
-});
-
 export const EndPoint = (
   x: number,
   y: number,
@@ -48,7 +43,8 @@ export const EndPoint = (
   segment: ISegment,
   angle: number
 ) => ({
-  ...Point(x, y),
+  x,
+  y,
   beginsSegment,
   segment,
   angle

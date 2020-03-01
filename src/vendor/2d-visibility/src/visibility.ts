@@ -1,7 +1,7 @@
 import { segmentInFrontOf } from "./segmentInFrontOf";
 import { endpointCompare } from "./endpointCompare";
 import { lineIntersection } from "./lineIntersection";
-import { Point, IPoint, IEndPoint, ISegment } from "./types";
+import { IPoint, IEndPoint, ISegment } from "./types";
 
 export type IVisibility = ReadonlyArray<Readonly<[IPoint, IPoint]>>;
 
@@ -12,9 +12,9 @@ function getTrianglePoints(
   segment: ISegment
 ): [IPoint, IPoint] {
   const p1 = origin;
-  const p2 = Point(origin.x + Math.cos(angle1), origin.y + Math.sin(angle1));
-  const p3 = Point(0, 0);
-  const p4 = Point(0, 0);
+  const p2 = { x: origin.x + Math.cos(angle1), y: origin.y + Math.sin(angle1) };
+  const p3 = { x: 0, y: 0 };
+  const p4 = { x: 0, y: 0 };
 
   if (segment) {
     p3.x = segment.p1.x;

@@ -1,4 +1,4 @@
-import { Point, ISegment, IPoint } from "./types";
+import { ISegment, IPoint } from "./types";
 
 function leftOf(segment: ISegment, point: IPoint): boolean {
   const cross =
@@ -8,10 +8,10 @@ function leftOf(segment: ISegment, point: IPoint): boolean {
 }
 
 function interpolate(pointA: IPoint, pointB: IPoint, f: number): IPoint {
-  return Point(
-    pointA.x * (1 - f) + pointB.x * f,
-    pointA.y * (1 - f) + pointB.y * f
-  );
+  return {
+    x: pointA.x * (1 - f) + pointB.x * f,
+    y: pointA.y * (1 - f) + pointB.y * f
+  };
 }
 
 export function segmentInFrontOf(
