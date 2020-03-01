@@ -1,11 +1,20 @@
-import { Point } from './types';
-import { segmentInFrontOf } from './segmentInFrontOf';
-import { endpointCompare } from './endpointCompare';
-import { lineIntersection } from './lineIntersection';
+import { segmentInFrontOf } from "./segmentInFrontOf";
+import { endpointCompare } from "./endpointCompare";
+import { lineIntersection } from "./lineIntersection";
+import { Point, IPoint, IEndPoint, ISegment } from "./types";
+
+export type IVisibility = ReadonlyArray<
+  Readonly<[Readonly<IPoint>, Readonly<IPoint>]>
+>;
 
 const { cos, sin } = Math;
 
-const getTrianglePoints = (origin, angle1, angle2, segment) => {
+function getTrianglePoints(
+  origin: IPoint,
+  angle1: number,
+  angle2: number,
+  segment: ISegment
+): [IPoint, IPoint] {
   const p1 = origin;
   const p2 = Point(origin.x + cos(angle1), origin.y + sin(angle1));
   const p3 = Point(0, 0);
@@ -31,26 +40,28 @@ const getTrianglePoints = (origin, angle1, angle2, segment) => {
   const pEnd = lineIntersection(p3, p4, p1, p2);
 
   return [pBegin, pEnd];
-};
+}
 
-export const calculateVisibility = (origin, endpoints) => {
-  let openSegments = [];
-  let output = [];
+export function calculateVisibility(
+  origin: Readonly<IPoint>,
+  endpoints: readonly Readonly<IEndPoint>[]
+): IVisibility {
+  const openSegments = [];
+  const output = [];
   let beginAngle = 0;
 
-  endpoints.sort(endpointCompare);
+  endpoints = [...endpoints].sort(endpointCompare);
 
-  for(let pass = 0; pass < 2; pass += 1) {
-    for (let i = 0; i < endpoints.length; i += 1) {
-      let endpoint = endpoints[i];
-      let openSegment = openSegments[0];
-      
+  for (let pass = 0; pass < 2; pass += 1) {
+    for (const endpoint of endpoints) {
+      const openSegment = openSegments[0];
+
       if (endpoint.beginsSegment) {
-        let index = 0
+        let index = 0;
         let segment = openSegments[index];
         while (segment && segmentInFrontOf(endpoint.segment, segment, origin)) {
           index += 1;
-          segment = openSegments[index]
+          segment = openSegments[index];
         }
 
         if (!segment) {
@@ -59,13 +70,18 @@ export const calculateVisibility = (origin, endpoints) => {
           openSegments.splice(index, 0, endpoint.segment);
         }
       } else {
-        let index = openSegments.indexOf(endpoint.segment)
+        const index = openSegments.indexOf(endpoint.segment);
         if (index > -1) openSegments.splice(index, 1);
       }
-      
+
       if (openSegment !== openSegments[0]) {
         if (pass === 1) {
-          let trianglePoints = getTrianglePoints(origin, beginAngle, endpoint.angle, openSegment);
+          const trianglePoints = getTrianglePoints(
+            origin,
+            beginAngle,
+            endpoint.angle,
+            openSegment
+          );
           output.push(trianglePoints);
         }
         beginAngle = endpoint.angle;
@@ -74,4 +90,4 @@ export const calculateVisibility = (origin, endpoints) => {
   }
 
   return output;
-};
+}
