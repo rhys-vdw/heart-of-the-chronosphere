@@ -61,7 +61,6 @@ export class GameView extends Component<Props> {
     const { radius, rooms } = generateMaze(this.props.mazeOptions);
     const ringDepth = radius * (1 / rooms.length);
     const points: Vector3[] = [];
-    const positions: number[] = [];
     rooms.forEach((rs, i) => {
       // Draw ring.
       const innerRadius = i * ringDepth;
@@ -88,14 +87,6 @@ export class GameView extends Component<Props> {
           points.push(
             new Vector3(roomInnerStart.x, roomInnerStart.y, 0),
             new Vector3(roomInner.x, roomInner.y, 0)
-          );
-          positions.push(
-            roomInnerStart.x,
-            roomInnerStart.y,
-            0,
-            roomInner.x,
-            roomInner.y,
-            0
           );
           addWall(roomInnerStart, roomInner);
         }
