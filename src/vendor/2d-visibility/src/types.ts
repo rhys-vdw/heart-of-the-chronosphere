@@ -1,11 +1,11 @@
 export interface IPoint {
-  x: number;
-  y: number;
+  readonly x: number;
+  readonly y: number;
 }
 
 export interface IRectangle extends IPoint {
-  width: number;
-  height: number;
+  readonly width: number;
+  readonly height: number;
 }
 
 export interface IEndPoint extends IPoint {
@@ -15,8 +15,9 @@ export interface IEndPoint extends IPoint {
 }
 
 export interface ISegment {
-  p1: IEndPoint;
-  p2: IEndPoint;
+  readonly p1: IEndPoint;
+  readonly p2: IEndPoint;
+  /** Distance from light source to midpoint of segment */
   d: number;
 }
 

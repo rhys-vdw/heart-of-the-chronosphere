@@ -3,9 +3,7 @@ import { endpointCompare } from "./endpointCompare";
 import { lineIntersection } from "./lineIntersection";
 import { Point, IPoint, IEndPoint, ISegment } from "./types";
 
-export type IVisibility = ReadonlyArray<
-  Readonly<[Readonly<IPoint>, Readonly<IPoint>]>
->;
+export type IVisibility = ReadonlyArray<Readonly<[IPoint, IPoint]>>;
 
 function getTrianglePoints(
   origin: IPoint,
@@ -41,7 +39,7 @@ function getTrianglePoints(
 }
 
 export function calculateVisibility(
-  origin: Readonly<IPoint>,
+  origin: IPoint,
   endpoints: readonly Readonly<IEndPoint>[]
 ): IVisibility {
   const openSegments = [];
