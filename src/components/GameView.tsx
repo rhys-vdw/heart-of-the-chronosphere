@@ -10,7 +10,8 @@ import {
   PerspectiveCamera,
   Vector3,
   Mesh,
-  Geometry
+  Geometry,
+  LineSegments
 } from "three";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
@@ -32,13 +33,20 @@ const viewMaterial = new THREE.MeshBasicMaterial({
   transparent: true
 });
 
-function createWallGeometry(walls: readonly Segment[]) {
-  const wallGeometry = new THREE.Geometry();
-  wallGeometry.vertices = walls.flatMap(w => [
-    new Vector3(w.p1.x, w.p1.y, 0),
-    new Vector3(w.p2.x, w.p2.y, 0)
+function createWallPoints(walls: readonly Segment[]) {
+  return walls.flatMap(w => [
+    new Vector2(w.p1.x, w.p1.y),
+    new Vector2(w.p2.x, w.p2.y)
   ]);
-  return new THREE.LineSegments(wallGeometry, wallMaterial);
+}
+
+function generateState(mazeOptions: MazeOptions) {
+  const maze = generateMaze(mazeOptions);
+  const map = mazeToMap(maze);
+  return {
+    maze,
+    map
+  };
 }
 
 interface State {
@@ -53,30 +61,35 @@ export class GameView extends Component<Props, State> {
   private camera!: PerspectiveCamera;
   private viewMesh!: Mesh;
   private position: Point = { x: 40, y: 60 };
+  private wallLineSegments!: LineSegments;
 
   constructor(props: Props) {
     super(props);
-    const maze = generateMaze(this.props.mazeOptions);
-    const map = mazeToMap(maze);
-    this.state = {
-      maze,
-      map
-    };
+    this.state = generateState(props.mazeOptions);
   }
 
   // -- Lifecycle --
 
-  componentDidMount() {
-    const { map } = this.state;
+  componentWillReceiveProps(nextProps: Props) {
+    this.setState(generateState(nextProps.mazeOptions));
+  }
 
+  componentDidUpdate() {
+    this.updateWallLines();
+    this.updateVisibilityPolygon();
+  }
+
+  componentDidMount() {
     // Create scene.
 
     this.scene = new Scene();
 
     // Create view of map walls.
 
-    const wallLineSegments = createWallGeometry(map.walls);
-    this.scene.add(wallLineSegments);
+    const wallGeometry = new THREE.Geometry();
+    this.wallLineSegments = new THREE.LineSegments(wallGeometry, wallMaterial);
+    this.scene.add(this.wallLineSegments);
+    this.updateWallLines();
 
     // Calculate view polygon.
 
@@ -98,12 +111,15 @@ export class GameView extends Component<Props, State> {
 
     // Start rendering.
 
-    const animate = () => {
+    setInterval(() => {
       this.position = {
         x: Math.random() * 300 - 150,
         y: Math.random() * 300 - 150
       };
-      this.redraw();
+      this.updateVisibilityPolygon();
+    }, 1000);
+
+    const animate = () => {
       requestAnimationFrame(animate);
       this.renderer.render(this.scene, this.camera);
     };
@@ -139,7 +155,19 @@ export class GameView extends Component<Props, State> {
 
   // -- Private interface --
 
-  redraw() {
+  private updateWallLines() {
+    // Doesn't update excess points
+    // const geometry = this.wallLineSegments.geometry as Geometry;
+    // geometry.setFromPoints(createWallPoints(this.state.map.walls));
+    // geometry.verticesNeedUpdate = true;
+
+    this.wallLineSegments.geometry.dispose();
+    const geometry = new THREE.Geometry();
+    geometry.setFromPoints(createWallPoints(this.state.map.walls));
+    this.wallLineSegments.geometry = geometry;
+  }
+
+  private updateVisibilityPolygon() {
     const { map, maze } = this.state;
     const { position } = this;
 
