@@ -12,7 +12,7 @@ import {
 } from "three";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
-import { ISegment, Segment } from "../vendor/2d-visibility/src/types";
+import { ISegment, createSegment } from "../vendor/2d-visibility/src/types";
 
 const Layers = {
   Environment: 0x01
@@ -48,7 +48,7 @@ export class GameView extends Component<Props> {
     const points: Vector3[] = [];
 
     const addWall = (from: Vector2, to: Vector2) => {
-      segments.push(Segment(from.x, from.y, to.x, to.y));
+      segments.push(createSegment(from.x, from.y, to.x, to.y));
       points.push(new Vector3(from.x, from.y, 0), new Vector3(to.x, to.y, 0));
     };
 

@@ -1,4 +1,10 @@
-import { Segment, IRectangle, ISegment, IPoint, IEndPoint } from "./types";
+import {
+  createSegment,
+  IRectangle,
+  ISegment,
+  IPoint,
+  IEndPoint
+} from "./types";
 
 const getCorners = ({ x, y, width, height }: IRectangle) => ({
   nw: [x, y] as const,
@@ -11,7 +17,7 @@ function pointsToSegment(
   a: readonly [number, number],
   b: readonly [number, number]
 ): ISegment {
-  return Segment(a[0], a[1], b[0], b[1]);
+  return createSegment(a[0], a[1], b[0], b[1]);
 }
 function rectangleToSegments(rectangle: IRectangle): ISegment[] {
   const { nw, sw, ne, se } = getCorners(rectangle);

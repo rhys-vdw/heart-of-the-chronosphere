@@ -36,7 +36,7 @@ export const Rectangle = (
 export const Block = Rectangle;
 export const Room = Rectangle;
 
-export const Segment = (
+export const createSegment = (
   x1: number,
   y1: number,
   x2: number,
