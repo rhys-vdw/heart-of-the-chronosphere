@@ -1,12 +1,9 @@
-import { EndPoint } from "./types";
+import { EndPointMeta } from "./types";
 
-export function endpointCompare(
-  pointA: EndPoint,
-  pointB: EndPoint
-): -1 | 0 | 1 {
-  if (pointA.angle > pointB.angle) return 1;
-  if (pointA.angle < pointB.angle) return -1;
-  if (!pointA.beginsSegment && pointB.beginsSegment) return 1;
-  if (pointA.beginsSegment && !pointB.beginsSegment) return -1;
+export function endpointCompare(a: EndPointMeta, b: EndPointMeta): -1 | 0 | 1 {
+  if (a.angle > b.angle) return 1;
+  if (a.angle < b.angle) return -1;
+  if (!a.beginsSegment && b.beginsSegment) return 1;
+  if (a.beginsSegment && !b.beginsSegment) return -1;
   return 0;
 }

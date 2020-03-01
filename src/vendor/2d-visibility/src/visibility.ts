@@ -1,7 +1,7 @@
 import { segmentInFrontOf } from "./segmentInFrontOf";
 import { endpointCompare } from "./endpointCompare";
 import { lineIntersection } from "./lineIntersection";
-import { Point, EndPoint, Segment } from "./types";
+import { Point, EndPoint, Segment, EndPointMeta } from "./types";
 
 export type IVisibility = ReadonlyArray<Readonly<[Point, Point]>>;
 
@@ -40,19 +40,23 @@ function getTrianglePoints(
 
 export function calculateVisibility(
   origin: Point,
-  endpoints: readonly Readonly<EndPoint>[]
+  endpoints: readonly EndPoint[],
+  metaMap: WeakMap<EndPoint, EndPointMeta>
 ): IVisibility {
   const openSegments = [];
   const output = [];
   let beginAngle = 0;
 
-  endpoints = [...endpoints].sort(endpointCompare);
+  endpoints = [...endpoints].sort((a, b) =>
+    endpointCompare(metaMap.get(a)!, metaMap.get(b)!)
+  );
 
   for (let pass = 0; pass < 2; pass += 1) {
     for (const endpoint of endpoints) {
+      const meta = metaMap.get(endpoint)!;
       const openSegment = openSegments[0];
 
-      if (endpoint.beginsSegment) {
+      if (meta.beginsSegment) {
         let index = 0;
         let segment = openSegments[index];
         while (segment && segmentInFrontOf(endpoint.segment, segment, origin)) {
@@ -75,12 +79,12 @@ export function calculateVisibility(
           const trianglePoints = getTrianglePoints(
             origin,
             beginAngle,
-            endpoint.angle,
+            meta.angle,
             openSegment
           );
           output.push(trianglePoints);
         }
-        beginAngle = endpoint.angle;
+        beginAngle = meta.angle;
       }
     }
   }

@@ -91,13 +91,13 @@ export class GameView extends Component<Props> {
     });
 
     const position = { x: 40, y: 60 };
-    const endPoints = loadMap(
+    const { endPoints, meta } = loadMap(
       { x: -radius, y: -radius, width: radius * 2, height: radius * 2 },
       [],
       segments,
       position
     );
-    const visibility = calculateVisibility(position, endPoints);
+    const visibility = calculateVisibility(position, endPoints, meta);
     console.log({ segments, endPoints, visibility });
     const viewGeometry = new THREE.Geometry();
     viewGeometry.vertices = [new Vector3(position.x, position.y, 0)];

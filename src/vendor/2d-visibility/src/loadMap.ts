@@ -1,4 +1,11 @@
-import { createSegment, Box, Segment, Point, EndPoint } from "./types";
+import {
+  createSegment,
+  Box,
+  Segment,
+  Point,
+  EndPoint,
+  EndPointMeta
+} from "./types";
 
 const getCorners = ({ x, y, width, height }: Box) => ({
   nw: [x, y] as const,
@@ -23,31 +30,28 @@ function rectangleToSegments(rectangle: Box): Segment[] {
   ];
 }
 
-function calculateEndPointAngles(lightSource: Point, segment: Segment): void {
+function getEndPointMetas(
+  lightSource: Point,
+  segment: Segment
+): [EndPointMeta, EndPointMeta] {
   const { x, y } = lightSource;
-  segment.p1.angle = Math.atan2(segment.p1.y - y, segment.p1.x - x);
-  segment.p2.angle = Math.atan2(segment.p2.y - y, segment.p2.x - x);
-}
-
-function setSegmentBeginning(segment: Segment): void {
-  let dAngle = segment.p2.angle - segment.p1.angle;
+  const angle1 = Math.atan2(segment.p1.y - y, segment.p1.x - x);
+  const angle2 = Math.atan2(segment.p2.y - y, segment.p2.x - x);
+  let dAngle = angle2 - angle1;
 
   if (dAngle <= -Math.PI) dAngle += 2 * Math.PI;
   if (dAngle > Math.PI) dAngle -= 2 * Math.PI;
 
-  segment.p1.beginsSegment = dAngle > 0;
-  segment.p2.beginsSegment = !segment.p1.beginsSegment;
+  const does1BeginSegment = dAngle > 0;
+  return [
+    { beginsSegment: does1BeginSegment, angle: angle1 },
+    { beginsSegment: !does1BeginSegment, angle: angle2 }
+  ];
 }
 
-function processSegments(
-  lightSource: Point,
-  segments: readonly Segment[]
-): readonly Segment[] {
-  segments.forEach(segment => {
-    calculateEndPointAngles(lightSource, segment);
-    setSegmentBeginning(segment);
-  });
-  return segments;
+interface LoadedMap {
+  readonly endPoints: readonly EndPoint[];
+  readonly meta: WeakMap<EndPoint, EndPointMeta>;
 }
 
 export function loadMap(
@@ -55,12 +59,20 @@ export function loadMap(
   blocks: readonly Box[],
   walls: readonly Segment[],
   lightSource: Point
-): ReadonlyArray<Readonly<EndPoint>> {
-  const segments = processSegments(lightSource, [
+): LoadedMap {
+  const segments = [
     ...rectangleToSegments(room),
     ...blocks.flatMap(rectangleToSegments),
     ...walls
-  ]);
-
-  return segments.flatMap(({ p1, p2 }) => [p1, p2]);
+  ];
+  return segments.reduce(
+    (acc, segment) => {
+      acc.endPoints.push(segment.p1, segment.p2);
+      const [m1, m2] = getEndPointMetas(lightSource, segment);
+      acc.meta.set(segment.p1, m1);
+      acc.meta.set(segment.p2, m2);
+      return acc;
+    },
+    { endPoints: [] as EndPoint[], meta: new WeakMap<EndPoint, EndPointMeta>() }
+  );
 }
