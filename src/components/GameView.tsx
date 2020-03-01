@@ -13,6 +13,7 @@ import {
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
 import { Segment, createSegment } from "../vendor/2d-visibility/src/types";
+import { mazeToMap } from "../utility/Map";
 
 const Layers = {
   Environment: 0x01
@@ -42,63 +43,41 @@ export class GameView extends Component<Props> {
   }
 
   componentDidMount() {
-    // -- Initialize physics world --
+    // Initialize map.
 
-    const segments: Segment[] = [];
-    const points: Vector3[] = [];
+    const maze = generateMaze(this.props.mazeOptions);
+    const map = mazeToMap(maze);
 
-    const addWall = (from: Vector2, to: Vector2) => {
-      segments.push(createSegment(from.x, from.y, to.x, to.y));
-      points.push(new Vector3(from.x, from.y, 0), new Vector3(to.x, to.y, 0));
-    };
+    // Create scene.
 
-    const center = new Vector2(0, 0);
-    const { radius, rooms } = generateMaze(this.props.mazeOptions);
-    const ringDepth = radius * (1 / rooms.length);
-    rooms.forEach((rs, i) => {
-      // Draw ring.
-      const innerRadius = i * ringDepth;
-      const outerRadius = (i + 1) * ringDepth;
+    this.scene = new Scene();
 
-      // Get the inner and router point of the first room.
-      const firstRoomInner = new Vector2(0, innerRadius);
-      const firstRoomOuter = new Vector2(0, outerRadius);
+    // Create view of map walls.
 
-      // Draw radiual room separators.
-      const roomAngle = (Math.PI * 2) / rs.length;
-      rs.forEach((room, j) => {
-        const clockwiseAngle = j * roomAngle;
-        const counterClockwiseAngle = (j - 1) * roomAngle;
+    const wallGeometry = new THREE.Geometry();
+    wallGeometry.vertices = map.walls.flatMap(w => [
+      new Vector3(w.p1.x, w.p1.y, 0),
+      new Vector3(w.p2.x, w.p2.y, 0)
+    ]);
+    const wallLineSegments = new THREE.LineSegments(wallGeometry, wallMaterial);
+    wallLineSegments.visible = true;
+    this.scene.add(wallLineSegments);
 
-        const roomInner = firstRoomInner
-          .clone()
-          .rotateAround(center, clockwiseAngle);
-
-        if (room.isInnerBlocked) {
-          const roomInnerStart = firstRoomInner
-            .clone()
-            .rotateAround(center, counterClockwiseAngle);
-          addWall(roomInnerStart, roomInner);
-        }
-
-        if (room.isClockwiseBlocked) {
-          const roomOuter = firstRoomOuter
-            .clone()
-            .rotateAround(center, clockwiseAngle);
-          addWall(roomInner, roomOuter);
-        }
-      });
-    });
+    // Calculate view polygon.
 
     const position = { x: 40, y: 60 };
     const { endPoints, meta } = loadMap(
-      { x: -radius, y: -radius, width: radius * 2, height: radius * 2 },
+      {
+        x: -maze.radius,
+        y: -maze.radius,
+        width: maze.radius * 2,
+        height: maze.radius * 2
+      },
       [],
-      segments,
+      map.walls,
       position
     );
     const visibility = calculateVisibility(position, endPoints, meta);
-    console.log({ segments, endPoints, visibility });
     const viewGeometry = new THREE.Geometry();
     viewGeometry.vertices = [new Vector3(position.x, position.y, 0)];
     visibility.reduce((acc, [a, b], i) => {
@@ -108,28 +87,22 @@ export class GameView extends Component<Props> {
       return acc;
     }, viewGeometry);
     const viewMesh = new THREE.Mesh(viewGeometry, viewMaterial);
-
-    // -- Initialize renderer --
-
-    const canvas = this.canvasRef.current!;
-    this.scene = new Scene();
-
     this.scene.add(viewMesh);
 
-    const shape = (this.camera = new PerspectiveCamera(75, 1, 0.1, 1000));
+    // Create camera.
+
+    this.camera = new PerspectiveCamera(75, 1, 0.1, 1000);
     this.camera.position.z = 400;
     window.addEventListener("wheel", this.handleWheel);
 
-    this.renderer = new WebGLRenderer({ canvas });
+    // Initialize renderer.
 
+    const canvas = this.canvasRef.current!;
+    this.renderer = new WebGLRenderer({ canvas });
     this.updateRendererSize();
     window.addEventListener("resize", this.updateRendererSize);
 
-    const wallGeometry = new THREE.Geometry();
-    wallGeometry.vertices = points;
-    const wallLineSegments = new THREE.LineSegments(wallGeometry, wallMaterial);
-    wallLineSegments.visible = true;
-    this.scene.add(wallLineSegments);
+    // Start rendering.
 
     const animate = () => {
       requestAnimationFrame(animate);
