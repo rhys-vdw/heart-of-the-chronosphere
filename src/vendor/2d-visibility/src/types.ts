@@ -11,7 +11,7 @@ export interface IRectangle extends IPoint {
 export interface IEndPoint extends IPoint {
   beginsSegment?: boolean;
   segment: ISegment;
-  angle?: number;
+  angle: number;
 }
 
 export interface ISegment {
@@ -59,8 +59,8 @@ export const Segment = (
   x2: number,
   y2: number
 ): ISegment => {
-  const p1: any = { x: x1, y: y1 };
-  const p2: any = { x: x2, y: y2 };
+  const p1: any = { x: x1, y: y1, angle: 0, segment: null };
+  const p2: any = { x: x2, y: y2, angle: 0, segment: null };
   const segment: any = { p1, p2, d: 0 };
 
   p1.segment = segment;
