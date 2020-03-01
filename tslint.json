@@ -2,6 +2,7 @@
   "extends": ["tslint:latest", "tslint-config-prettier"],
   "rules": {
     "no-console": [true, "warn"],
-    "no-submodule-imports": false
+    "no-submodule-imports": false,
+    "no-this-assignment": false
   }
 }

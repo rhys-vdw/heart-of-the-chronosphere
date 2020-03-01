@@ -2,7 +2,7 @@ import { Vector2 } from "three";
 import { Maze } from "../utility/mazeGenerator";
 import { createSegment, Segment } from "../vendor/2d-visibility/src/types";
 
-interface Map {
+export interface Map {
   walls: readonly Segment[];
 }
 
