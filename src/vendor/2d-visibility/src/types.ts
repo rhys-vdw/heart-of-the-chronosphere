@@ -17,7 +17,7 @@ export interface IEndPoint extends IPoint {
 export interface ISegment {
   p1: IEndPoint;
   p2: IEndPoint;
-  d: 0;
+  d: number;
 }
 
 export const Rectangle = (
