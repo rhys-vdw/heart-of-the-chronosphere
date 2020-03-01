@@ -10,9 +10,9 @@ import {
   PerspectiveCamera,
   Vector3
 } from "three";
-import * as p2 from "p2";
-
-const wallWidth = 1;
+import { loadMap } from "../vendor/2d-visibility/src/loadMap";
+import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
+import { ISegment, Segment } from "../vendor/2d-visibility/src/types";
 
 const Layers = {
   Environment: 0x01
@@ -22,13 +22,18 @@ interface Props {
   mazeOptions: MazeOptions;
 }
 
+const wallMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+const viewMaterial = new THREE.MeshBasicMaterial({
+  color: 0xffffff,
+  opacity: 0.2,
+  transparent: true
+});
+
 export class GameView extends Component<Props> {
   private canvasRef = createRef<HTMLCanvasElement>();
   private renderer!: WebGLRenderer;
   private scene!: Scene;
   private camera!: PerspectiveCamera;
-
-  private world!: p2.World;
 
   // -- Lifecycle --
 
@@ -39,28 +44,17 @@ export class GameView extends Component<Props> {
   componentDidMount() {
     // -- Initialize physics world --
 
-    this.world = new p2.World();
+    const segments: ISegment[] = [];
+    const points: Vector3[] = [];
 
     const addWall = (from: Vector2, to: Vector2) => {
-      const wallLine = to.clone().sub(from);
-      const shape = new p2.Box({
-        collisionGroup: Layers.Environment,
-        width: wallLine.length(),
-        height: wallWidth
-      });
-      const wallCenter = from.add(wallLine.clone().divideScalar(2));
-      const body = new p2.Body({
-        position: wallCenter.toArray() as [number, number],
-        angle: wallLine.angle()
-      });
-      body.addShape(shape);
-      this.world.addBody(body);
+      segments.push(Segment(from.x, from.y, to.x, to.y));
+      points.push(new Vector3(from.x, from.y, 0), new Vector3(to.x, to.y, 0));
     };
 
     const center = new Vector2(0, 0);
     const { radius, rooms } = generateMaze(this.props.mazeOptions);
     const ringDepth = radius * (1 / rooms.length);
-    const points: Vector3[] = [];
     rooms.forEach((rs, i) => {
       // Draw ring.
       const innerRadius = i * ringDepth;
@@ -84,10 +78,6 @@ export class GameView extends Component<Props> {
           const roomInnerStart = firstRoomInner
             .clone()
             .rotateAround(center, counterClockwiseAngle);
-          points.push(
-            new Vector3(roomInnerStart.x, roomInnerStart.y, 0),
-            new Vector3(roomInner.x, roomInner.y, 0)
-          );
           addWall(roomInnerStart, roomInner);
         }
 
@@ -95,21 +85,38 @@ export class GameView extends Component<Props> {
           const roomOuter = firstRoomOuter
             .clone()
             .rotateAround(center, clockwiseAngle);
-          points.push(
-            new Vector3(roomInner.x, roomInner.y, 0),
-            new Vector3(roomOuter.x, roomOuter.y, 0)
-          );
           addWall(roomInner, roomOuter);
         }
       });
     });
+
+    const position = { x: 40, y: 60 };
+    const endPoints = loadMap(
+      { x: -radius, y: -radius, width: radius * 2, height: radius * 2 },
+      [],
+      segments,
+      position
+    );
+    const visibility = calculateVisibility(position, endPoints);
+    console.log({ segments, endPoints, visibility });
+    const viewGeometry = new THREE.Geometry();
+    viewGeometry.vertices = [new Vector3(position.x, position.y, 0)];
+    visibility.reduce((acc, [a, b], i) => {
+      acc.vertices.push(new Vector3(a.x, a.y, 0));
+      acc.vertices.push(new Vector3(b.x, b.y, 0));
+      acc.faces.push(new THREE.Face3(0, i * 2 + 1, i * 2 + 2));
+      return acc;
+    }, viewGeometry);
+    const viewMesh = new THREE.Mesh(viewGeometry, viewMaterial);
 
     // -- Initialize renderer --
 
     const canvas = this.canvasRef.current!;
     this.scene = new Scene();
 
-    this.camera = new PerspectiveCamera(75, 1, 0.1, 1000);
+    this.scene.add(viewMesh);
+
+    const shape = (this.camera = new PerspectiveCamera(75, 1, 0.1, 1000));
     this.camera.position.z = 400;
     window.addEventListener("wheel", this.handleWheel);
 
@@ -120,10 +127,7 @@ export class GameView extends Component<Props> {
 
     const wallGeometry = new THREE.Geometry();
     wallGeometry.vertices = points;
-    const wallLineSegments = new THREE.LineSegments(
-      wallGeometry,
-      new THREE.LineBasicMaterial({ color: 0xffffff })
-    );
+    const wallLineSegments = new THREE.LineSegments(wallGeometry, wallMaterial);
     wallLineSegments.visible = true;
     this.scene.add(wallLineSegments);
 
