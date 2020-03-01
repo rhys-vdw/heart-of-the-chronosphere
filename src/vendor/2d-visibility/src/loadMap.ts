@@ -45,8 +45,8 @@ function setSegmentBeginning(segment: ISegment): void {
 
 function processSegments(
   lightSource: IPoint,
-  segments: ReadonlyArray<ISegment>
-): ReadonlyArray<ISegment> {
+  segments: readonly ISegment[]
+): readonly ISegment[] {
   segments.forEach(segment => {
     calculateEndPointAngles(lightSource, segment);
     setSegmentBeginning(segment);
@@ -56,8 +56,8 @@ function processSegments(
 
 export function loadMap(
   room: IRectangle,
-  blocks: ReadonlyArray<IRectangle>,
-  walls: ReadonlyArray<ISegment>,
+  blocks: readonly IRectangle[],
+  walls: readonly ISegment[],
   lightSource: IPoint
 ): ReadonlyArray<Readonly<IEndPoint>> {
   const segments = processSegments(lightSource, [
