@@ -17,8 +17,6 @@ export interface EndPoint extends Point {
 export interface Segment {
   readonly p1: EndPoint;
   readonly p2: EndPoint;
-  /** Distance from light source to midpoint of segment */
-  d: number;
 }
 
 export const createSegment = (
@@ -29,7 +27,7 @@ export const createSegment = (
 ): Segment => {
   const p1: any = { x: x1, y: y1, angle: 0, segment: null };
   const p2: any = { x: x2, y: y2, angle: 0, segment: null };
-  const segment: any = { p1, p2, d: 0 };
+  const segment = { p1, p2 };
 
   p1.segment = segment;
   p2.segment = segment;
