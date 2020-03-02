@@ -3,6 +3,7 @@
   "rules": {
     "no-console": [true, "warn"],
     "no-submodule-imports": false,
-    "no-this-assignment": false
+    "no-this-assignment": false,
+    "max-classes-per-file": false
   }
 }

@@ -19,6 +19,7 @@ import { loadMap } from "../vendor/2d-visibility/src/loadMap";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
 import { Segment, Point } from "../vendor/2d-visibility/src/types";
 import { mazeToMap, Map } from "../utility/Map";
+import { Game, CommandStatus, MoveCommand } from "../game/Game";
 
 const wallMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
 const viewMaterial = new THREE.MeshBasicMaterial({
@@ -53,18 +54,31 @@ interface State {
   readonly map: Map;
 }
 
+const tickDuration = 1000 / 60;
+
 export class GameView extends Component<Props, State> {
   private canvasRef = createRef<HTMLCanvasElement>();
   private renderer!: WebGLRenderer;
   private scene!: Scene;
   private camera!: PerspectiveCamera;
   private viewMesh!: Mesh;
-  private position: Point = { x: 40, y: 60 };
   private wallLineSegments!: LineSegments;
+  private lastTickTime: number = 0;
+  private game: Game;
 
   constructor(props: Props) {
     super(props);
     this.state = generateState(props.mazeOptions);
+    this.game = new Game(this.state.map, {
+      position: { x: 0, y: 0 },
+      species: { name: "Human" },
+      stats: {
+        moveSpeed: 5,
+        radius: 5
+      },
+      currentCommand: null,
+      currentCommandTickCount: 0
+    });
   }
 
   // -- Lifecycle --
@@ -110,9 +124,24 @@ export class GameView extends Component<Props, State> {
 
     // Start rendering.
 
+    this.lastTickTime = Date.now();
     const animate = () => {
-      requestAnimationFrame(animate);
+      if (!this.game.isWaitingForCommand()) {
+        const time = Date.now();
+        const delta = time - this.lastTickTime;
+        const tickDelta = Math.floor(delta / tickDuration);
+        for (let i = 0; i < tickDelta; i++) {
+          const status = this.game.tick();
+          this.lastTickTime += tickDuration;
+          if (status === CommandStatus.Complete) {
+            break;
+          }
+        }
+      }
+      this.updateVisibilityPolygon();
       this.renderer.render(this.scene, this.camera);
+
+      requestAnimationFrame(animate);
     };
     animate();
   }
@@ -127,7 +156,7 @@ export class GameView extends Component<Props, State> {
     return (
       <canvas
         className={styles.canvas}
-        onMouseMove={this.handleMouseDown}
+        onMouseDown={this.handleMouseDown}
         {...canvasProps}
       />
     );
@@ -137,6 +166,7 @@ export class GameView extends Component<Props, State> {
 
   private raycaster = new Raycaster();
   private handleMouseDown = (event: MouseEvent) => {
+    if (!this.game.isWaitingForCommand()) return;
     const {
       x,
       y,
@@ -150,9 +180,8 @@ export class GameView extends Component<Props, State> {
     this.raycaster.setFromCamera(position, this.camera);
     const target = new Vector3();
     this.raycaster.ray.intersectPlane(horizontalPlane, target);
-    this.position = { x: target.x, y: target.y };
-    this.updateVisibilityPolygon();
-    console.log("Click!", this.position);
+    this.game.setCommand(new MoveCommand({ x: target.x, y: target.y }));
+    this.lastTickTime = Date.now();
   };
 
   private handleWheel = (event: WheelEvent) => {
@@ -188,7 +217,7 @@ export class GameView extends Component<Props, State> {
 
   private updateVisibilityPolygon() {
     const { map, maze } = this.state;
-    const { position } = this;
+    const { position } = this.game.player;
 
     // Update view polygon.
 
