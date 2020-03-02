@@ -1,30 +1,31 @@
-import { h, createRef, Component } from "preact";
 import { remove } from "lodash";
-import * as styles from "./GameView.css";
-import { generateMaze, MazeOptions, Maze } from "../utility/mazeGenerator";
+import { Component, createRef, h } from "preact";
 import * as THREE from "three";
 // tslint:disable-next-line:no-duplicate-imports
 import {
-  Scene,
-  WebGLRenderer,
-  Vector2,
-  PerspectiveCamera,
-  Vector3,
-  Mesh,
   Geometry,
+  Line,
+  LineBasicMaterial,
   LineSegments,
+  Mesh,
+  PerspectiveCamera,
   Plane,
   Raycaster,
-  Object3D,
-  Material
+  Scene,
+  Vector2,
+  Vector3,
+  WebGLRenderer,
+  BufferGeometry
 } from "three";
+import { Character, CommandStatus, Game, MoveCommand } from "../game/Game";
+import { Map, mazeToMap } from "../utility/Map";
+import { generateMaze, Maze, MazeOptions } from "../utility/mazeGenerator";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
-import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
 import { Segment } from "../vendor/2d-visibility/src/types";
-import { mazeToMap, Map } from "../utility/Map";
-import { Game, CommandStatus, MoveCommand, Character } from "../game/Game";
+import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
+import * as styles from "./GameView.css";
 
-const wallMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+const wallMaterial = new LineBasicMaterial({ color: 0xffffff });
 const viewMaterial = new THREE.MeshBasicMaterial({
   color: 0xffffff,
   opacity: 0.1,
@@ -81,11 +82,12 @@ export class GameView extends Component<Props, State> {
   private scene!: Scene;
   private camera!: PerspectiveCamera;
   private viewMesh!: Mesh;
+  private movementLine!: Line;
   private wallLineSegments!: LineSegments;
   private lastTickTime: number = 0;
   private game: Game;
-  private characterViews: THREE.Line[] = [];
-  private viewByCharacter: WeakMap<Character, THREE.Line> = new WeakMap();
+  private characterViews: Line[] = [];
+  private viewByCharacter: WeakMap<Character, Line> = new WeakMap();
 
   constructor(props: Props) {
     super(props);
@@ -121,11 +123,24 @@ export class GameView extends Component<Props, State> {
     // Create view of map walls.
 
     const wallGeometry = new THREE.Geometry();
-    this.wallLineSegments = new THREE.LineSegments(wallGeometry, wallMaterial);
+    this.wallLineSegments = new LineSegments(wallGeometry, wallMaterial);
     this.scene.add(this.wallLineSegments);
     this.updateWallLines();
 
-    // Calculate view polygon.
+    // Create movement indicator line.
+
+    const movementLineGeometry = new THREE.BufferGeometry();
+    movementLineGeometry.setFromPoints([
+      new Vector3(0, 0, 0),
+      new Vector3(0, 0, 0)
+    ]);
+    this.movementLine = new Line(
+      movementLineGeometry,
+      GameView.getLineMaterial(this.game.player.species.color)
+    );
+    this.scene.add(this.movementLine);
+
+    // Create view polygon.
 
     this.viewMesh = new THREE.Mesh(new THREE.Geometry(), viewMaterial);
     this.viewMesh.translateZ(0);
@@ -180,6 +195,7 @@ export class GameView extends Component<Props, State> {
       <canvas
         className={styles.canvas}
         onMouseDown={this.handleMouseDown}
+        onMouseMove={this.handleMouseMove}
         {...canvasProps}
       />
     );
@@ -188,8 +204,7 @@ export class GameView extends Component<Props, State> {
   // -- Event handlers --
 
   private raycaster = new Raycaster();
-  private handleMouseDown = (event: MouseEvent) => {
-    if (!this.game.isWaitingForCommand()) return;
+  private raycastWindowPosition(pos: { x: number; y: number }) {
     const {
       x,
       y,
@@ -197,12 +212,33 @@ export class GameView extends Component<Props, State> {
       height
     } = this.canvasRef.current!.getBoundingClientRect();
     const position = new Vector2(
-      ((event.x - x) / width) * 2 - 1,
-      -((event.y - y) / height) * 2 + 1
+      ((pos.x - x) / width) * 2 - 1,
+      -((pos.y - y) / height) * 2 + 1
     );
     this.raycaster.setFromCamera(position, this.camera);
     const target = new Vector3();
     this.raycaster.ray.intersectPlane(horizontalPlane, target);
+    return target;
+  }
+
+  private handleMouseMove = (event: MouseEvent) => {
+    if (this.game.isWaitingForCommand()) {
+      this.movementLine.visible = true;
+      const to = this.raycastWindowPosition(event);
+      const from = this.game.player.position;
+      const geo = this.movementLine.geometry as BufferGeometry;
+      geo.setFromPoints([
+        new Vector3(from.x, from.y, 0),
+        new Vector3(to.x, to.y, 0)
+      ]);
+    } else {
+      this.movementLine.visible = false;
+    }
+  };
+
+  private handleMouseDown = (event: MouseEvent) => {
+    if (!this.game.isWaitingForCommand()) return;
+    const target = this.raycastWindowPosition(event);
     this.game.setCommand(new MoveCommand({ x: target.x, y: target.y }));
     this.lastTickTime = Date.now();
   };
@@ -269,7 +305,7 @@ export class GameView extends Component<Props, State> {
   }
 
   private updateCharacters() {
-    const isVisible = new Set<THREE.Line>();
+    const isVisible = new Set<Line>();
     this.game.getVisibleCharacters().forEach(character => {
       let obj = this.viewByCharacter.get(character) ?? null;
       if (obj === null) {
@@ -298,14 +334,18 @@ export class GameView extends Component<Props, State> {
     });
   }
 
-  static lineMaterialByColor = new Map<number, Material>();
-  private static createRing(radius: number, color: number) {
+  static lineMaterialByColor = new Map<number, LineBasicMaterial>();
+  private static getLineMaterial(color: number) {
     let material = this.lineMaterialByColor.get(color) ?? null;
     if (material === null) {
-      material = new THREE.LineBasicMaterial({ color });
+      material = new LineBasicMaterial({ color });
       this.lineMaterialByColor.set(color, material);
     }
-    const ring = new THREE.Line(ringGeometry, material);
+    return material;
+  }
+
+  private static createRing(radius: number, color: number) {
+    const ring = new Line(ringGeometry, this.getLineMaterial(color));
     ring.scale.x = radius;
     ring.scale.y = radius;
     return ring;
