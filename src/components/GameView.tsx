@@ -25,6 +25,7 @@ import { Segment } from "../vendor/2d-visibility/src/types";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
 import * as styles from "./GameView.css";
 import { rayCastSegments } from "../utility/rayCast";
+import { vec3to2, vec2to3 } from "../utility/threeJsUtility";
 
 const wallMaterial = new LineBasicMaterial({ color: 0xffffff });
 const viewMaterial = new THREE.MeshBasicMaterial({
@@ -94,7 +95,7 @@ export class GameView extends Component<Props, State> {
     super(props);
     this.state = generateState(props.mazeOptions);
     this.game = new Game(this.state.map, {
-      position: { x: 0, y: 0 },
+      position: new Vector2(0, 0),
       species: { name: "Human", color: 0x3333ff },
       stats: {
         moveSpeed: 5,
@@ -226,28 +227,13 @@ export class GameView extends Component<Props, State> {
     if (this.game.isWaitingForCommand()) {
       this.movementLine.visible = true;
       const from = this.game.player.position;
-      const to = this.raycastWindowPosition(event);
-      const from2 = new Vector2(from.x, from.y);
-      const offset = new Vector2(to.x, to.y).sub(from2);
-      const direction = offset.clone().normalize();
-      const maxDistance = rayCastSegments(
-        from2,
-        direction,
-        this.state.map.walls
+      const target = this.raycastWindowPosition(event);
+      const to = this.game.getMaximumMoveTowardsPoint(
+        this.game.player,
+        vec3to2(target)
       );
-
       const geo = this.movementLine.geometry as BufferGeometry;
-      const from3 = new Vector3(from.x, from.y, 0);
-      const to3 =
-        maxDistance === null || maxDistance > offset.length()
-          ? new Vector3(to.x, to.y, 0)
-          : from3
-              .clone()
-              .add(
-                new Vector3(direction.x, direction.y, 0).setLength(maxDistance)
-              );
-
-      geo.setFromPoints([from3, to3]);
+      geo.setFromPoints([vec2to3(from), vec2to3(to)]);
     } else {
       this.movementLine.visible = false;
     }
@@ -256,7 +242,11 @@ export class GameView extends Component<Props, State> {
   private handleMouseDown = (event: MouseEvent) => {
     if (!this.game.isWaitingForCommand()) return;
     const target = this.raycastWindowPosition(event);
-    this.game.setCommand(new MoveCommand({ x: target.x, y: target.y }));
+    const to = this.game.getMaximumMoveTowardsPoint(
+      this.game.player,
+      vec3to2(target)
+    );
+    this.game.setCommand(new MoveCommand(to));
     this.lastTickTime = Date.now();
   };
 

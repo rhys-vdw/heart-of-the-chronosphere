@@ -1,6 +1,7 @@
-import { Map } from "../utility/Map";
 import { remove } from "lodash";
-import * as THREE from "three";
+import { Vector2 } from "three";
+import { Map } from "../utility/Map";
+import { rayCastSegments } from "../utility/rayCast";
 
 export const enum CommandStatus {
   InProgress,
@@ -17,11 +18,6 @@ export interface CharacterStats {
   radius: number;
 }
 
-export interface Vector2 {
-  x: number;
-  y: number;
-}
-
 export interface Command {
   nextTick(character: Character, game: Game): CommandStatus;
 }
@@ -36,7 +32,7 @@ export class MoveCommand implements Command {
     const distance = speed * 0.5;
     const from = character.position;
     const to = this.target;
-    const offset = new THREE.Vector2(to.x - from.x, to.y - from.y);
+    const offset = new Vector2(to.x - from.x, to.y - from.y);
     const targetDistance = offset.length();
     let status: CommandStatus;
     if (targetDistance <= distance) {
@@ -104,6 +100,25 @@ export class Game {
     }
     this.player.currentCommand = command;
     this.player.currentCommandTickCount = 0;
+  }
+
+  getMaximumMoveTowardsPoint(character: Character, point: Vector2): Vector2 {
+    const from = character.position;
+    const offset = point.clone().sub(from);
+    const direction = offset.clone().normalize();
+    let maxDistance = rayCastSegments(
+      from,
+      direction,
+      this.levels[this.currentLevelIndex].map.walls
+    );
+    // Subtract radius from max distance to stop exact at the wall.
+    maxDistance =
+      maxDistance === null ? Infinity : maxDistance - character.stats.radius;
+    return maxDistance > offset.length()
+      ? point
+      : from
+          .clone()
+          .add(new Vector2(direction.x, direction.y).setLength(maxDistance));
   }
 
   tick(): CommandStatus {
