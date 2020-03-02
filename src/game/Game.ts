@@ -29,7 +29,6 @@ export class MoveCommand implements Command {
   private target: Vector2;
   constructor(target: Vector2) {
     this.target = target;
-    console.log("Make MoveCommand", this);
   }
   nextTick(character: Character, game: Game): CommandStatus {
     const speed = character.stats.moveSpeed;
@@ -121,7 +120,6 @@ export class Game {
   // }
 
   tick(): CommandStatus {
-    console.log("tick!");
     if (this.isWaitingForCommand()) {
       throw new Error("Waiting for command");
     }
