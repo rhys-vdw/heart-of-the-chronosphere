@@ -69,8 +69,6 @@ export class Game {
   currentLevelIndex: number = -1;
   player: Character;
   tickCount: number = 0;
-  // lastTickTime: number = 0;
-  // gameTime: number = 0;
 
   constructor(map: Map, player: Character) {
     this.levels = [
@@ -91,33 +89,17 @@ export class Game {
     this.levels[this.currentLevelIndex].characters.push(this.player);
   }
 
-  public isWaitingForCommand(): boolean {
+  isWaitingForCommand(): boolean {
     return this.player.currentCommand === null;
   }
 
-  public setCommand(command: Command): void {
+  setCommand(command: Command): void {
     if (!this.isWaitingForCommand()) {
       throw new Error("Player is not waiting for command");
     }
     this.player.currentCommand = command;
     this.player.currentCommandTickCount = 0;
   }
-
-  // public step(deltaTime: number): CommandStatus {
-  //   const targetGameTime = this.gameTime + deltaTime;
-  //   const timeSinceLastTick = targetGameTime - this.lastTickTime;
-  //   const tickCount = Math.floor(timeSinceLastTick / tickDuration);
-  //   for (let i = 0; i < tickCount; i++) {
-  //     this.lastTickTime += tickDuration;
-  //     const status = this.tick();
-  //     if (status === CommandStatus.Complete) {
-  //       this.gameTime = this.lastTickTime;
-  //       return status;
-  //     }
-  //   }
-  //   this.gameTime = targetGameTime;
-  //   return CommandStatus.InProgress;
-  // }
 
   tick(): CommandStatus {
     if (this.isWaitingForCommand()) {
