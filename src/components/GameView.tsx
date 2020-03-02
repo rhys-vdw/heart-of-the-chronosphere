@@ -1,4 +1,5 @@
 import { h, createRef, Component } from "preact";
+import { remove } from "lodash";
 import * as styles from "./GameView.css";
 import { generateMaze, MazeOptions, Maze } from "../utility/mazeGenerator";
 import * as THREE from "three";
@@ -13,21 +14,39 @@ import {
   Geometry,
   LineSegments,
   Plane,
-  Raycaster
+  Raycaster,
+  Object3D,
+  Material
 } from "three";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
-import { Segment, Point } from "../vendor/2d-visibility/src/types";
+import { Segment } from "../vendor/2d-visibility/src/types";
 import { mazeToMap, Map } from "../utility/Map";
-import { Game, CommandStatus, MoveCommand } from "../game/Game";
+import { Game, CommandStatus, MoveCommand, Character } from "../game/Game";
 
 const wallMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
 const viewMaterial = new THREE.MeshBasicMaterial({
   color: 0xffffff,
-  opacity: 0.2,
+  opacity: 0.1,
   transparent: true
 });
 const horizontalPlane = new Plane(new Vector3(0, 0, 1), 0);
+
+const circleCurve = new THREE.EllipseCurve(
+  0,
+  0,
+  // x, y radius.
+  1,
+  1,
+  // Full circle.
+  0,
+  2 * Math.PI,
+  false, // clockwise
+  0 // rotation
+);
+const ringGeometry = new THREE.BufferGeometry().setFromPoints(
+  circleCurve.getPoints(32)
+);
 
 function createWallPoints(walls: readonly Segment[]) {
   return walls.flatMap(w => [
@@ -65,13 +84,15 @@ export class GameView extends Component<Props, State> {
   private wallLineSegments!: LineSegments;
   private lastTickTime: number = 0;
   private game: Game;
+  private characterViews: THREE.Line[] = [];
+  private viewByCharacter: WeakMap<Character, THREE.Line> = new WeakMap();
 
   constructor(props: Props) {
     super(props);
     this.state = generateState(props.mazeOptions);
     this.game = new Game(this.state.map, {
       position: { x: 0, y: 0 },
-      species: { name: "Human" },
+      species: { name: "Human", color: 0x0000ff },
       stats: {
         moveSpeed: 5,
         radius: 5
@@ -107,6 +128,7 @@ export class GameView extends Component<Props, State> {
     // Calculate view polygon.
 
     this.viewMesh = new THREE.Mesh(new THREE.Geometry(), viewMaterial);
+    this.viewMesh.translateZ(0);
     this.scene.add(this.viewMesh);
 
     // Create camera.
@@ -138,6 +160,7 @@ export class GameView extends Component<Props, State> {
           }
         }
       }
+      this.updateCharacters();
       this.updateVisibilityPolygon();
       this.renderer.render(this.scene, this.camera);
 
@@ -243,5 +266,48 @@ export class GameView extends Component<Props, State> {
       return acc;
     }, viewGeometry);
     viewGeometry.elementsNeedUpdate = true;
+  }
+
+  private updateCharacters() {
+    const isVisible = new Set<THREE.Line>();
+    this.game.getVisibleCharacters().forEach(character => {
+      let obj = this.viewByCharacter.get(character) ?? null;
+      if (obj === null) {
+        obj = GameView.createRing(
+          character.stats.radius,
+          character.species.color
+        );
+        obj.translateZ(-0.1);
+        this.scene.add(obj);
+        this.viewByCharacter.set(character, obj);
+      } else if (obj.parent === null) {
+        this.scene.add(obj);
+      }
+      isVisible.add(obj);
+
+      obj.position.x = character.position.x;
+      obj.position.y = character.position.y;
+    });
+    remove(this.characterViews, obj => {
+      if (isVisible.has(obj)) {
+        return false;
+      } else {
+        this.scene.remove(obj);
+        return true;
+      }
+    });
+  }
+
+  static lineMaterialByColor = new Map<number, Material>();
+  private static createRing(radius: number, color: number) {
+    let material = this.lineMaterialByColor.get(color) ?? null;
+    if (material === null) {
+      material = new THREE.LineBasicMaterial({ color });
+      this.lineMaterialByColor.set(color, material);
+    }
+    const ring = new THREE.Line(ringGeometry, material);
+    ring.scale.x = radius;
+    ring.scale.y = radius;
+    return ring;
   }
 }

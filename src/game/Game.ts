@@ -9,6 +9,7 @@ export const enum CommandStatus {
 
 export interface Species {
   name: string;
+  color: number;
 }
 
 export interface CharacterStats {
@@ -79,6 +80,10 @@ export class Game {
     ];
     this.player = player;
     this.enterLevel(0);
+  }
+
+  getVisibleCharacters(): ReadonlyArray<Character> {
+    return this.levels[this.currentLevelIndex].characters;
   }
 
   enterLevel(levelIndex: number) {
