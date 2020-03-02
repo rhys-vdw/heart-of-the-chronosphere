@@ -1,7 +1,8 @@
 import { remove } from "lodash";
 import { Vector2 } from "three";
-import { Map } from "../utility/Map";
+import { Map, mazeToMap } from "../utility/Map";
 import { rayCastSegments } from "../utility/rayCast";
+import { Maze, MazeOptions, generateMaze } from "../utility/mazeGenerator";
 
 export const enum CommandStatus {
   InProgress,
@@ -59,6 +60,7 @@ export interface Character {
 export interface Level {
   characters: Character[];
   map: Map;
+  maze: Maze;
 }
 
 export class Game {
@@ -67,15 +69,27 @@ export class Game {
   player: Character;
   tickCount: number = 0;
 
-  constructor(map: Map, player: Character) {
+  constructor(mazeOptions: MazeOptions, player: Character) {
+    const maze = generateMaze(mazeOptions);
     this.levels = [
       {
         characters: [],
-        map
+        maze,
+        map: mazeToMap(maze)
       }
     ];
     this.player = player;
     this.enterLevel(0);
+  }
+
+  regenerateMaze_TEMP(mazeOptions: MazeOptions) {
+    const level = this.levels[this.currentLevelIndex];
+    level.maze = generateMaze(mazeOptions);
+    level.map = mazeToMap(level.maze);
+  }
+
+  getCurrentLevel() {
+    return this.levels[this.currentLevelIndex];
   }
 
   getVisibleCharacters(): ReadonlyArray<Character> {

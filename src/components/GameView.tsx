@@ -3,6 +3,7 @@ import { Component, createRef, h } from "preact";
 import * as THREE from "three";
 // tslint:disable-next-line:no-duplicate-imports
 import {
+  BufferGeometry,
   Geometry,
   Line,
   LineBasicMaterial,
@@ -15,27 +16,27 @@ import {
   Vector2,
   Vector3,
   WebGLRenderer,
-  BufferGeometry
+  MeshBasicMaterial,
+  EllipseCurve,
+  Face3
 } from "three";
 import { Character, CommandStatus, Game, MoveCommand } from "../game/Game";
-import { Map, mazeToMap } from "../utility/Map";
-import { generateMaze, Maze, MazeOptions } from "../utility/mazeGenerator";
+import { MazeOptions } from "../utility/mazeGenerator";
+import { vec2to3, vec3to2 } from "../utility/threeJsUtility";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
 import { Segment } from "../vendor/2d-visibility/src/types";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
 import * as styles from "./GameView.css";
-import { rayCastSegments } from "../utility/rayCast";
-import { vec3to2, vec2to3 } from "../utility/threeJsUtility";
 
 const wallMaterial = new LineBasicMaterial({ color: 0xffffff });
-const viewMaterial = new THREE.MeshBasicMaterial({
+const viewMaterial = new MeshBasicMaterial({
   color: 0xffffff,
   opacity: 0.1,
   transparent: true
 });
 const horizontalPlane = new Plane(new Vector3(0, 0, 1), 0);
 
-const circleCurve = new THREE.EllipseCurve(
+const circleCurve = new EllipseCurve(
   0,
   0,
   // x, y radius.
@@ -47,7 +48,7 @@ const circleCurve = new THREE.EllipseCurve(
   false, // clockwise
   0 // rotation
 );
-const ringGeometry = new THREE.BufferGeometry().setFromPoints(
+const ringGeometry = new BufferGeometry().setFromPoints(
   circleCurve.getPoints(32)
 );
 
@@ -58,27 +59,13 @@ function createWallPoints(walls: readonly Segment[]) {
   ]);
 }
 
-function generateState(mazeOptions: MazeOptions) {
-  const maze = generateMaze(mazeOptions);
-  const map = mazeToMap(maze);
-  return {
-    maze,
-    map
-  };
-}
-
 interface Props {
   readonly mazeOptions: MazeOptions;
 }
 
-interface State {
-  readonly maze: Maze;
-  readonly map: Map;
-}
-
 const tickDuration = 1000 / 60;
 
-export class GameView extends Component<Props, State> {
+export class GameView extends Component<Props> {
   private canvasRef = createRef<HTMLCanvasElement>();
   private renderer!: WebGLRenderer;
   private scene!: Scene;
@@ -93,8 +80,7 @@ export class GameView extends Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
-    this.state = generateState(props.mazeOptions);
-    this.game = new Game(this.state.map, {
+    this.game = new Game(props.mazeOptions, {
       position: new Vector2(0, 0),
       species: { name: "Human", color: 0x3333ff },
       stats: {
@@ -108,11 +94,8 @@ export class GameView extends Component<Props, State> {
 
   // -- Lifecycle --
 
-  componentWillReceiveProps(nextProps: Props) {
-    this.setState(generateState(nextProps.mazeOptions));
-  }
-
   componentDidUpdate() {
+    this.game.regenerateMaze_TEMP(this.props.mazeOptions);
     this.updateWallLines();
     this.updateVisibilityPolygon();
   }
@@ -124,14 +107,14 @@ export class GameView extends Component<Props, State> {
 
     // Create view of map walls.
 
-    const wallGeometry = new THREE.Geometry();
+    const wallGeometry = new Geometry();
     this.wallLineSegments = new LineSegments(wallGeometry, wallMaterial);
     this.scene.add(this.wallLineSegments);
     this.updateWallLines();
 
     // Create movement indicator line.
 
-    const movementLineGeometry = new THREE.BufferGeometry();
+    const movementLineGeometry = new BufferGeometry();
     movementLineGeometry.setFromPoints([
       new Vector3(0, 0, 0),
       new Vector3(0, 0, 0)
@@ -144,7 +127,7 @@ export class GameView extends Component<Props, State> {
 
     // Create view polygon.
 
-    this.viewMesh = new THREE.Mesh(new THREE.Geometry(), viewMaterial);
+    this.viewMesh = new Mesh(new Geometry(), viewMaterial);
     this.viewMesh.translateZ(0);
     this.scene.add(this.viewMesh);
 
@@ -276,13 +259,15 @@ export class GameView extends Component<Props, State> {
     // geometry.verticesNeedUpdate = true;
 
     this.wallLineSegments.geometry.dispose();
-    const geometry = new THREE.Geometry();
-    geometry.setFromPoints(createWallPoints(this.state.map.walls));
+    const geometry = new Geometry();
+    geometry.setFromPoints(
+      createWallPoints(this.game.getCurrentLevel().map.walls)
+    );
     this.wallLineSegments.geometry = geometry;
   }
 
   private updateVisibilityPolygon() {
-    const { map, maze } = this.state;
+    const { map, maze } = this.game.getCurrentLevel();
     const { position } = this.game.player;
 
     // Update view polygon.
@@ -305,7 +290,7 @@ export class GameView extends Component<Props, State> {
     visibility.reduce((acc, [a, b], i) => {
       acc.vertices.push(new Vector3(a.x, a.y, 0));
       acc.vertices.push(new Vector3(b.x, b.y, 0));
-      acc.faces.push(new THREE.Face3(0, i * 2 + 1, i * 2 + 2));
+      acc.faces.push(new Face3(0, i * 2 + 1, i * 2 + 2));
       return acc;
     }, viewGeometry);
     viewGeometry.elementsNeedUpdate = true;
