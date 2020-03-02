@@ -92,7 +92,7 @@ export class GameView extends Component<Props, State> {
     this.state = generateState(props.mazeOptions);
     this.game = new Game(this.state.map, {
       position: { x: 0, y: 0 },
-      species: { name: "Human", color: 0x0000ff },
+      species: { name: "Human", color: 0x3333ff },
       stats: {
         moveSpeed: 5,
         radius: 5
