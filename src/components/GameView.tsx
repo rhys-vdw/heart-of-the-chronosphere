@@ -1,4 +1,4 @@
-import { remove } from "lodash";
+import { remove, clamp } from "lodash";
 import { Component, createRef, h } from "preact";
 import * as THREE from "three";
 // tslint:disable-next-line:no-duplicate-imports
@@ -18,7 +18,9 @@ import {
   WebGLRenderer,
   MeshBasicMaterial,
   EllipseCurve,
-  Face3
+  Face3,
+  OrthographicCamera,
+  Camera
 } from "three";
 import { Character, CommandStatus, Game, MoveCommand } from "../game/Game";
 import { MazeOptions } from "../utility/mazeGenerator";
@@ -69,7 +71,7 @@ export class GameView extends Component<Props> {
   private canvasRef = createRef<HTMLCanvasElement>();
   private renderer!: WebGLRenderer;
   private scene!: Scene;
-  private camera!: PerspectiveCamera;
+  private camera!: Camera;
   private viewMesh!: Mesh;
   private movementLine!: Line;
   private wallLineSegments!: LineSegments;
@@ -133,7 +135,7 @@ export class GameView extends Component<Props> {
 
     // Create camera.
 
-    this.camera = new PerspectiveCamera(75, 1, 0.1, 1000);
+    this.camera = new OrthographicCamera(-100, 100, 100, -100, 1, 1000);
     this.camera.position.z = 200;
     window.addEventListener("wheel", this.handleWheel);
 
@@ -235,16 +237,38 @@ export class GameView extends Component<Props> {
     this.lastTickTime = Date.now();
   };
 
+  private zoom = 2;
+  private readonly minZoom = 1.5;
+  private readonly maxZoom = 5;
   private handleWheel = (event: WheelEvent) => {
-    this.camera.position.z += event.deltaY * 0.01;
+    this.zoom = clamp(
+      this.zoom - event.deltaY * 0.01,
+      this.minZoom,
+      this.maxZoom
+    );
+    this.updateRendererSize();
   };
 
   private updateRendererSize = () => {
     const canvas = this.canvasRef.current!;
     const bounds = canvas.getBoundingClientRect();
 
-    this.camera.aspect = bounds.width / bounds.height;
-    this.camera.updateProjectionMatrix();
+    if (this.camera instanceof PerspectiveCamera) {
+      // Tweak these numbers:
+      this.camera.position.z = 200 + this.zoom;
+      this.camera.aspect = bounds.width / bounds.height;
+      this.camera.updateProjectionMatrix();
+    } else if (this.camera instanceof OrthographicCamera) {
+      const extentX = bounds.width / (2 * this.zoom);
+      const extentY = bounds.height / (2 * this.zoom);
+      this.camera.left = -extentX;
+      this.camera.right = extentX;
+      this.camera.top = extentY;
+      this.camera.bottom = -extentY;
+      this.camera.updateProjectionMatrix();
+    } else {
+      throw new TypeError(`Unexpected Camera type: {typeof(this.camera)}`);
+    }
 
     this.renderer.setSize(bounds.width, bounds.height, false);
     this.renderer.setPixelRatio(window.devicePixelRatio);
