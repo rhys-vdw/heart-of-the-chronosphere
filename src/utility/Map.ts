@@ -1,6 +1,7 @@
 import { Vector2 } from "three";
-import { Maze } from "../utility/mazeGenerator";
+import { Maze, Room, Feature } from "../utility/mazeGenerator";
 import { createSegment, Segment } from "../vendor/2d-visibility/src/types";
+import { last, times } from "lodash";
 
 export interface Map {
   walls: readonly Segment[];
@@ -16,7 +17,7 @@ export function mazeToMap(maze: Maze): Map {
   const ringDepth = radius * (1 / rooms.length);
   const center = new Vector2(0, 0);
 
-  rooms.forEach((rs, i) => {
+  const processRing = (rs: readonly Room[], i: number) => {
     // Get ring radii.
     const innerRadius = i * ringDepth;
     const outerRadius = (i + 1) * ringDepth;
@@ -49,7 +50,18 @@ export function mazeToMap(maze: Maze): Map {
         addWall(roomInner, roomOuter);
       }
     });
-  });
+  };
+
+  rooms.forEach(processRing);
+  const outer = times(
+    last(rooms)!.length,
+    (): Room => ({
+      isInnerBlocked: true,
+      isClockwiseBlocked: false,
+      feature: Feature.None
+    })
+  );
+  processRing(outer, rooms.length);
 
   return { walls };
 }
