@@ -1,4 +1,4 @@
-import { times } from "lodash";
+import { times, sampleSize, sample } from "lodash";
 
 export enum Feature {
   None,
@@ -59,6 +59,13 @@ export function generateMaze({
     );
   }
 
+  const rings = [sample(maze.rooms)!, sample(maze.rooms)!];
+  const enterExit =
+    rings[0] === rings[1] ? sampleSize(rings[0], 2) : rings.map(sample);
+
+  enterExit[0]!.feature = Feature.Entry;
+  enterExit[1]!.feature = Feature.Exit;
+
   return maze;
 }
 
@@ -68,4 +75,36 @@ function toCircumference(radius: number) {
 
 function nextPowerOfTwo(i: number) {
   return Math.pow(2, Math.ceil(Math.log2(i)));
+}
+
+export interface SphereOptions {
+  readonly capHeight: number;
+  readonly blockChance: number;
+  readonly radius: number;
+  readonly sliceCount: number;
+  readonly minRingDepth: number;
+  readonly minRoomWidth: number;
+}
+
+export function generateSphereOptions({
+  radius,
+  capHeight,
+  sliceCount,
+  blockChance,
+  minRingDepth,
+  minRoomWidth
+}: SphereOptions): MazeOptions[] {
+  const totalSliceHeight = (radius - capHeight) * 2;
+  const sliceHeight = totalSliceHeight / sliceCount;
+  return times<MazeOptions>(sliceCount, i => {
+    const a = totalSliceHeight / 2 - sliceHeight * i;
+    const c = radius;
+    const b = Math.sqrt(Math.pow(a, 2) - Math.pow(c, 2));
+    return {
+      radius: b,
+      blockChance,
+      ringCount: Math.max(1, Math.floor(b / minRingDepth)),
+      minRoomWidth
+    };
+  });
 }

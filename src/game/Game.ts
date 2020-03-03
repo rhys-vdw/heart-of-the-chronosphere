@@ -69,15 +69,15 @@ export class Game {
   player: Character;
   tickCount: number = 0;
 
-  constructor(mazeOptions: MazeOptions, player: Character) {
-    const maze = generateMaze(mazeOptions);
-    this.levels = [
-      {
+  constructor(mazeOptions: readonly MazeOptions[], player: Character) {
+    this.levels = mazeOptions.map(o => {
+      const maze = generateMaze(o);
+      return {
         characters: [],
         maze,
         map: mazeToMap(maze)
-      }
-    ];
+      };
+    });
     this.player = player;
     this.enterLevel(0);
     times(10, () =>
@@ -91,10 +91,15 @@ export class Game {
     );
   }
 
-  regenerateMaze_TEMP(mazeOptions: MazeOptions) {
-    const level = this.levels[this.currentLevelIndex];
-    level.maze = generateMaze(mazeOptions);
-    level.map = mazeToMap(level.maze);
+  regenerateMaze_TEMP(mazeOptions: readonly MazeOptions[]) {
+    this.levels = mazeOptions.map(o => {
+      const maze = generateMaze(o);
+      return {
+        characters: [],
+        maze,
+        map: mazeToMap(maze)
+      };
+    });
   }
 
   getCurrentLevel() {

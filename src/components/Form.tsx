@@ -1,22 +1,22 @@
 import { h, Component } from "preact";
-import { MazeOptions } from "../utility/mazeGenerator";
 import { lowerCase, endsWith } from "lodash";
 import { Button } from "./Button";
-import * as styles from "./MazeGenerationForm.css";
+import * as styles from "./Form.css";
 
-interface Props {
-  initialValues: MazeOptions;
-  onChange: (values: MazeOptions) => void;
+interface Props<T> {
+  initialValues: T;
+  onChange: (values: T) => void;
+  submitVerb: string;
 }
 
-interface State {
-  values: MazeOptions;
+interface State<T> {
+  values: T;
 }
 
-export class MazeGenerationForm extends Component<Props, State> {
+export class Form<T> extends Component<Props<T>, State<T>> {
   state = { values: this.props.initialValues };
 
-  private handleInput = (key: keyof MazeOptions) => (event: Event) => {
+  private handleInput = (key: keyof T) => (event: Event) => {
     this.setState(({ values }) => ({
       values: {
         ...values,
@@ -30,6 +30,7 @@ export class MazeGenerationForm extends Component<Props, State> {
   };
 
   render() {
+    const { submitVerb } = this.props;
     const { values } = this.state;
     return (
       <form
@@ -48,11 +49,11 @@ export class MazeGenerationForm extends Component<Props, State> {
               step={endsWith(key, "Count") ? undefined : 0.1}
               type="number"
               value={value}
-              onInput={this.handleInput(key as keyof MazeOptions)}
+              onInput={this.handleInput(key as keyof T)}
             />
           </div>
         ))}
-        <Button>Generate</Button>
+        <Button>{submitVerb}</Button>
       </form>
     );
   }

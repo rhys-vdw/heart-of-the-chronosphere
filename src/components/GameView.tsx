@@ -19,11 +19,14 @@ import {
   Vector2,
   Vector3,
   WebGLRenderer,
-  Float32BufferAttribute,
   BufferAttribute
 } from "three";
 import { Character, CommandStatus, Game, MoveCommand } from "../game/Game";
-import { MazeOptions } from "../utility/mazeGenerator";
+import {
+  MazeOptions,
+  generateSphereOptions,
+  SphereOptions
+} from "../utility/mazeGenerator";
 import { getMousePosition } from "../utility/mouse";
 import { vec3to2 } from "../utility/threeJsUtility";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
@@ -63,7 +66,7 @@ function createWallPoints(walls: readonly Segment[]) {
 }
 
 interface Props {
-  readonly mazeOptions: MazeOptions;
+  readonly sphereOptions: SphereOptions;
 }
 
 const tickDuration = 1000 / 60;
@@ -83,7 +86,7 @@ export class GameView extends Component<Props> {
 
   constructor(props: Props) {
     super(props);
-    this.game = new Game(props.mazeOptions, {
+    this.game = new Game(generateSphereOptions(props.sphereOptions), {
       position: new Vector2(0, 0),
       species: { name: "Human", color: 0x5555ff },
       stats: {
@@ -98,7 +101,7 @@ export class GameView extends Component<Props> {
   // -- Lifecycle --
 
   componentDidUpdate() {
-    this.game.regenerateMaze_TEMP(this.props.mazeOptions);
+    this.game.regenerateMaze_TEMP(generateSphereOptions(this.props.sphereOptions);
     this.updateWallLines();
     this.updateVisibilityPolygon();
   }
@@ -134,6 +137,7 @@ export class GameView extends Component<Props> {
 
     this.viewMesh = new Mesh(new Geometry(), viewMaterial);
     this.viewMesh.translateZ(0);
+    this.viewMesh.frustumCulled = false;
     this.scene.add(this.viewMesh);
 
     // Create camera.
