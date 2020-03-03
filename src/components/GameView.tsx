@@ -18,12 +18,14 @@ import {
   Scene,
   Vector2,
   Vector3,
-  WebGLRenderer
+  WebGLRenderer,
+  Float32BufferAttribute,
+  BufferAttribute
 } from "three";
 import { Character, CommandStatus, Game, MoveCommand } from "../game/Game";
 import { MazeOptions } from "../utility/mazeGenerator";
 import { getMousePosition } from "../utility/mouse";
-import { vec2to3, vec3to2 } from "../utility/threeJsUtility";
+import { vec3to2 } from "../utility/threeJsUtility";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
 import { Segment } from "../vendor/2d-visibility/src/types";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
@@ -124,6 +126,7 @@ export class GameView extends Component<Props> {
       movementLineGeometry,
       GameView.getLineMaterial(this.game.player.species.color)
     );
+    this.movementLine.frustumCulled = false;
     this.movementLine.position.z = 100;
     this.scene.add(this.movementLine);
 
@@ -136,7 +139,7 @@ export class GameView extends Component<Props> {
     // Create camera.
 
     this.camera = new OrthographicCamera(-100, 100, 100, -100, 1, 1000);
-    this.camera.position.z = 200;
+    this.camera.translateZ(200);
     window.addEventListener("wheel", this.handleWheel);
 
     // Initialize renderer.
@@ -165,8 +168,11 @@ export class GameView extends Component<Props> {
       this.updateCharacters();
       this.updateVisibilityPolygon();
       this.updateMouseLine(getMousePosition());
-      this.camera.position.x = this.game.player.position.x;
-      this.camera.position.y = this.game.player.position.y;
+      this.camera.position.set(
+        this.game.player.position.x,
+        this.game.player.position.y,
+        this.camera.position.z
+      );
       this.renderer.render(this.scene, this.camera);
 
       requestAnimationFrame(animate);
@@ -220,8 +226,10 @@ export class GameView extends Component<Props> {
         vec3to2(target)
       );
       const geo = this.movementLine.geometry as BufferGeometry;
-      const points = [vec2to3(from), vec2to3(to)];
-      geo.setFromPoints(points);
+      const positionBuffer = geo.attributes.position as BufferAttribute;
+      positionBuffer.setXYZ(0, from.x, from.y, 0);
+      positionBuffer.setXYZ(1, to.x, to.y, 0);
+      positionBuffer.needsUpdate = true;
     } else {
       this.movementLine.visible = false;
     }
