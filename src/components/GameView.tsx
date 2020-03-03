@@ -83,7 +83,7 @@ export class GameView extends Component<Props> {
     super(props);
     this.game = new Game(props.mazeOptions, {
       position: new Vector2(0, 0),
-      species: { name: "Human", color: 0x3333ff },
+      species: { name: "Human", color: 0x5555ff },
       stats: {
         moveSpeed: 5,
         radius: 5
