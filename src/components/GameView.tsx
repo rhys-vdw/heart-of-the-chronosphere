@@ -1,29 +1,28 @@
-import { remove, clamp } from "lodash";
+import { clamp, remove } from "lodash";
 import { Component, createRef, h } from "preact";
-import * as THREE from "three";
-// tslint:disable-next-line:no-duplicate-imports
 import {
   BufferGeometry,
+  Camera,
+  EllipseCurve,
+  Face3,
   Geometry,
   Line,
   LineBasicMaterial,
   LineSegments,
   Mesh,
+  MeshBasicMaterial,
+  OrthographicCamera,
   PerspectiveCamera,
   Plane,
   Raycaster,
   Scene,
   Vector2,
   Vector3,
-  WebGLRenderer,
-  MeshBasicMaterial,
-  EllipseCurve,
-  Face3,
-  OrthographicCamera,
-  Camera
+  WebGLRenderer
 } from "three";
 import { Character, CommandStatus, Game, MoveCommand } from "../game/Game";
 import { MazeOptions } from "../utility/mazeGenerator";
+import { getMousePosition } from "../utility/mouse";
 import { vec2to3, vec3to2 } from "../utility/threeJsUtility";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
 import { Segment } from "../vendor/2d-visibility/src/types";
@@ -125,6 +124,7 @@ export class GameView extends Component<Props> {
       movementLineGeometry,
       GameView.getLineMaterial(this.game.player.species.color)
     );
+    this.movementLine.position.z = 100;
     this.scene.add(this.movementLine);
 
     // Create view polygon.
@@ -164,6 +164,7 @@ export class GameView extends Component<Props> {
       }
       this.updateCharacters();
       this.updateVisibilityPolygon();
+      this.updateMouseLine(getMousePosition());
       this.camera.position.x = this.game.player.position.x;
       this.camera.position.y = this.game.player.position.y;
       this.renderer.render(this.scene, this.camera);
@@ -184,7 +185,6 @@ export class GameView extends Component<Props> {
       <canvas
         className={styles.canvas}
         onMouseDown={this.handleMouseDown}
-        onMouseMove={this.handleMouseMove}
         {...canvasProps}
       />
     );
@@ -210,17 +210,18 @@ export class GameView extends Component<Props> {
     return target;
   }
 
-  private handleMouseMove = (event: MouseEvent) => {
+  private updateMouseLine = (position: { x: number; y: number }) => {
     if (this.game.isWaitingForCommand()) {
       this.movementLine.visible = true;
       const from = this.game.player.position;
-      const target = this.raycastWindowPosition(event);
+      const target = this.raycastWindowPosition(position);
       const to = this.game.getMaximumMoveTowardsPoint(
         this.game.player,
         vec3to2(target)
       );
       const geo = this.movementLine.geometry as BufferGeometry;
-      geo.setFromPoints([vec2to3(from), vec2to3(to)]);
+      const points = [vec2to3(from), vec2to3(to)];
+      geo.setFromPoints(points);
     } else {
       this.movementLine.visible = false;
     }
