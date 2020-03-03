@@ -162,6 +162,8 @@ export class GameView extends Component<Props> {
       }
       this.updateCharacters();
       this.updateVisibilityPolygon();
+      this.camera.position.x = this.game.player.position.x;
+      this.camera.position.y = this.game.player.position.y;
       this.renderer.render(this.scene, this.camera);
 
       requestAnimationFrame(animate);
