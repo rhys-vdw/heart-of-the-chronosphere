@@ -134,7 +134,7 @@ export class GameView extends Component<Props> {
     // Create camera.
 
     this.camera = new PerspectiveCamera(75, 1, 0.1, 1000);
-    this.camera.position.z = 400;
+    this.camera.position.z = 200;
     window.addEventListener("wheel", this.handleWheel);
 
     // Initialize renderer.
