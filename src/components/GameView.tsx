@@ -229,7 +229,7 @@ export class GameView extends Component<Props> {
       this.game.player,
       vec3to2(target)
     );
-    this.game.setCommand(new MoveCommand(to));
+    this.game.setPlayerCommand(new MoveCommand(to));
     this.lastTickTime = Date.now();
   };
 

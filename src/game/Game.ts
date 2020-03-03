@@ -1,4 +1,4 @@
-import { remove } from "lodash";
+import { remove, times } from "lodash";
 import { Vector2 } from "three";
 import { Map, mazeToMap } from "../utility/Map";
 import { rayCastSegments } from "../utility/rayCast";
@@ -80,6 +80,15 @@ export class Game {
     ];
     this.player = player;
     this.enterLevel(0);
+    times(10, () =>
+      this.levels[0].characters.push({
+        position: this.randomPointInMap(),
+        species: { name: "Orc", color: 0x33ff33 },
+        stats: { moveSpeed: 3, radius: 5 },
+        currentCommand: null,
+        currentCommandTickCount: 0
+      })
+    );
   }
 
   regenerateMaze_TEMP(mazeOptions: MazeOptions) {
@@ -108,12 +117,16 @@ export class Game {
     return this.player.currentCommand === null;
   }
 
-  setCommand(command: Command): void {
-    if (!this.isWaitingForCommand()) {
-      throw new Error("Player is not waiting for command");
+  setPlayerCommand(command: Command): void {
+    this.setCommand(this.player, command);
+  }
+
+  setCommand(character: Character, command: Command) {
+    if (character.currentCommand !== null) {
+      throw new Error("character is not waiting for command");
     }
-    this.player.currentCommand = command;
-    this.player.currentCommandTickCount = 0;
+    character.currentCommand = command;
+    character.currentCommandTickCount = 0;
   }
 
   getMaximumMoveTowardsPoint(character: Character, point: Vector2): Vector2 {
@@ -137,9 +150,22 @@ export class Game {
 
   tick(): CommandStatus {
     if (this.isWaitingForCommand()) {
-      throw new Error("Waiting for command");
+      console.log("Waiting for command");
+      return CommandStatus.Complete;
     }
     const level = this.levels[this.currentLevelIndex];
+    let playerCommandStatus = CommandStatus.InProgress;
+    for (const character of level.characters) {
+      if (character.currentCommand === null) {
+        if (character === this.player) {
+          playerCommandStatus = CommandStatus.Complete;
+        } else {
+          const target = this.randomPointInMap();
+          const to = this.getMaximumMoveTowardsPoint(character, target);
+          this.setCommand(character, new MoveCommand(to));
+        }
+      }
+    }
     for (const character of level.characters) {
       if (character.currentCommand === null) {
         throw new Error("Character has no command!");
@@ -151,18 +177,14 @@ export class Game {
         character.currentCommand = null;
       }
     }
-    let playerCommandStatus = CommandStatus.InProgress;
-    for (const character of level.characters) {
-      if (character.currentCommand === null) {
-        if (character === this.player) {
-          playerCommandStatus = CommandStatus.Complete;
-        } else {
-          // tslint:disable-next-line:no-console
-          console.warn("NYI: AI");
-        }
-      }
-    }
     this.tickCount++;
     return playerCommandStatus;
+  }
+
+  private randomPointInMap() {
+    return new Vector2(
+      0,
+      this.getCurrentLevel().maze.radius * Math.random()
+    ).rotateAround(new Vector2(0, 0), Math.random() * Math.PI * 2);
   }
 }
