@@ -73,7 +73,7 @@ export class Game {
   }
 
   getVisibleCharacters(): ReadonlyArray<Character> {
-    return this.levels[this.currentLevelIndex].characters;
+    return this.getCurrentLevel().characters;
   }
 
   ascend() {

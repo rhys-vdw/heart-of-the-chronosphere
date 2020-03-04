@@ -473,11 +473,9 @@ export class GameView extends Component<Props> {
     // geometry.verticesNeedUpdate = true;
 
     this.wallLineSegments.geometry.dispose();
-    const geometry = new Geometry();
-    geometry.setFromPoints(
+    this.wallLineSegments.geometry = new Geometry().setFromPoints(
       createWallPoints(this.game.getCurrentLevel().map.walls)
     );
-    this.wallLineSegments.geometry = geometry;
   }
 
   private updateVisibilityPolygon() {
