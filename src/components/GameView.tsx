@@ -37,12 +37,6 @@ import { Segment } from "../vendor/2d-visibility/src/types";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
 import * as styles from "./GameView.css";
 
-// -- Types --
-
-interface ViewUserData {
-  feature: Feature;
-}
-
 // -- Heights --
 
 const visionZ = 0;
@@ -108,7 +102,12 @@ const squareGeometry = new BufferGeometry().setFromPoints([
   new Vector3(-0.5, 0.5, 0)
 ]);
 
-// -- Helpers --
+// -- User data --
+
+interface ViewUserData {
+  feature: Feature;
+  character: Character | null;
+}
 
 function setUserData(object: Object3D, userData: ViewUserData) {
   object.userData = userData;
@@ -119,6 +118,16 @@ function getUserData(object: Object3D): ViewUserData | null {
     ? (object.userData as ViewUserData)
     : null;
 }
+
+function expectUserData(object: Object3D): ViewUserData {
+  const userData = getUserData(object);
+  if (userData === null) {
+    throw new Error("Expected user data");
+  }
+  return userData;
+}
+
+// -- Factories --
 
 function createStairs(isStairsUp: boolean, position: Vector2) {
   const stairs = new Object3D();
@@ -143,7 +152,8 @@ function createStairs(isStairsUp: boolean, position: Vector2) {
 
   // TODO: Add detector
   const userData = {
-    feature: isStairsUp ? Feature.StairsUp : Feature.StairsDown
+    feature: isStairsUp ? Feature.StairsUp : Feature.StairsDown,
+    character: null
   };
   setUserData(square, userData);
   setUserData(arrow, userData);
@@ -380,7 +390,6 @@ export class GameView extends Component<Props> {
         this.movementLine.visible = true;
       } else {
         this.movementLine.visible = false;
-        console.log(object);
       }
     } else {
       this.movementLine.visible = false;
@@ -510,24 +519,28 @@ export class GameView extends Component<Props> {
           character.stats.radius,
           character.species.color
         );
+        setUserData(obj, { feature: Feature.None, character });
         obj.layers.set(Layer.Interactive);
         obj.position.set(0, 0, characterZ);
         this.scene.add(obj);
         this.viewByCharacter.set(character, obj);
-      }
-      if (obj.parent === null) {
-        this.scene.add(obj);
+        this.characterViews.push(obj);
       }
       isVisible.add(obj);
 
       obj.position.x = character.position.x;
       obj.position.y = character.position.y;
     });
-    remove(this.characterViews, obj => {
+    remove(this.characterViews, (obj, i) => {
       if (isVisible.has(obj)) {
         return false;
       } else {
+        const userData = expectUserData(obj);
+        if (userData.character === null) {
+          throw new Error("Expected character!");
+        }
         this.scene.remove(obj);
+        this.viewByCharacter.delete(userData.character);
         return true;
       }
     });
