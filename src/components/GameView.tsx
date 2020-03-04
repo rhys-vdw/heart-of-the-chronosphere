@@ -36,12 +36,27 @@ import { Segment } from "../vendor/2d-visibility/src/types";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
 import * as styles from "./GameView.css";
 
+// -- Types --
+
+interface ViewUserData {
+  feature: Feature;
+}
+
 // -- Heights --
 
 const visionZ = 0;
 const wallZ = 1;
 const featureZ = 2;
 const characterZ = 3;
+
+// -- layers --
+
+const enum Layer {
+  Vision,
+  Interactive,
+  Environment,
+  Ui
+}
 
 // -- Materials --
 
@@ -62,6 +77,8 @@ function getLineMaterial(color: number) {
   }
   return material;
 }
+
+// -- Geometry --
 
 const circleCurve = new EllipseCurve(
   0,
@@ -89,15 +106,31 @@ const squareGeometry = new BufferGeometry().setFromPoints([
   new Vector3(-0.5, -0.5, 0),
   new Vector3(-0.5, 0.5, 0)
 ]);
+
+// -- Helpers --
+
+function setUserData(object: Object3D, userData: ViewUserData) {
+  object.userData = userData;
+}
+
+function getUserData(object: Object3D): ViewUserData | null {
+  return object.userData.hasOwnProperty("feature")
+    ? (object.userData as ViewUserData)
+    : null;
+}
+
 function createStairs(isEntrance: boolean, position: Vector2) {
   const stairs = new Object3D();
+  setUserData(stairs, { feature: isEntrance ? Feature.Entry : Feature.Exit });
   const material = getLineMaterial(0xffffff);
 
   const square = new Line(squareGeometry, material);
   square.scale.set(10, 10, 1);
+  square.layers.set(Layer.Interactive);
   stairs.attach(square);
 
   const arrow = new Line(stairsGeometry, material);
+  arrow.layers.set(Layer.Interactive);
   arrow.scale.set(4, 4, 1);
   if (isEntrance) {
     arrow.translateY(-0.4);
@@ -139,6 +172,7 @@ export class GameView extends Component<Props> {
   private game: Game;
   private characterViews: Line[] = [];
   private viewByCharacter: WeakMap<Character, Line> = new WeakMap();
+  private raycaster!: Raycaster;
 
   constructor(props: Props) {
     super(props);
@@ -153,6 +187,8 @@ export class GameView extends Component<Props> {
       currentCommand: null,
       currentCommandTickCount: 0
     });
+    this.raycaster = new Raycaster();
+    this.raycaster.layers.set(Layer.Interactive);
   }
 
   // -- Lifecycle --
@@ -175,6 +211,7 @@ export class GameView extends Component<Props> {
     const wallGeometry = new Geometry();
     this.wallLineSegments = new LineSegments(wallGeometry, wallMaterial);
     this.wallLineSegments.position.set(0, 0, wallZ);
+    this.wallLineSegments.layers.set(Layer.Environment);
     this.scene.add(this.wallLineSegments);
     this.updateWallLines();
 
@@ -211,6 +248,7 @@ export class GameView extends Component<Props> {
       movementLineGeometry,
       getLineMaterial(this.game.player.species.color)
     );
+    this.movementLine.layers.set(Layer.Ui);
     this.movementLine.frustumCulled = false;
     this.movementLine.position.z = 100;
     this.scene.add(this.movementLine);
@@ -218,6 +256,7 @@ export class GameView extends Component<Props> {
     // Create view polygon.
 
     this.viewMesh = new Mesh(new Geometry(), viewMaterial);
+    this.viewMesh.layers.set(Layer.Vision);
     this.viewMesh.position.set(0, 0, visionZ);
     this.viewMesh.frustumCulled = false;
     this.scene.add(this.viewMesh);
@@ -226,6 +265,10 @@ export class GameView extends Component<Props> {
 
     this.camera = new OrthographicCamera(-100, 100, 100, -100, 1, 1000);
     this.camera.translateZ(200);
+    this.camera.layers.enable(Layer.Environment);
+    this.camera.layers.enable(Layer.Vision);
+    this.camera.layers.enable(Layer.Ui);
+    this.camera.layers.enable(Layer.Interactive);
     window.addEventListener("wheel", this.handleWheel);
 
     // Initialize renderer.
@@ -253,7 +296,7 @@ export class GameView extends Component<Props> {
       }
       this.updateCharacters();
       this.updateVisibilityPolygon();
-      this.updateMouseLine(getMousePosition());
+      this.updateCursor(getMousePosition());
       this.camera.position.set(
         this.game.player.position.x,
         this.game.player.position.y,
@@ -284,38 +327,55 @@ export class GameView extends Component<Props> {
 
   // -- Event handlers --
 
-  private raycaster = new Raycaster();
-  private raycastWindowPosition(pos: { x: number; y: number }) {
+  private windowToCameraPosition(pos: { x: number; y: number }) {
     const {
       x,
       y,
       width,
       height
     } = this.canvasRef.current!.getBoundingClientRect();
-    const position = new Vector2(
+    return new Vector2(
       ((pos.x - x) / width) * 2 - 1,
       -((pos.y - y) / height) * 2 + 1
     );
-    this.raycaster.setFromCamera(position, this.camera);
+  }
+
+  private raycastInteractive(pos: { x: number; y: number }): Object3D | null {
+    this.raycaster.setFromCamera(this.windowToCameraPosition(pos), this.camera);
+    const intersections = this.raycaster.intersectObjects(
+      this.scene.children,
+      true
+    );
+    return intersections.length === 0 ? null : intersections[0].object;
+  }
+
+  private raycastWorldPosition(pos: { x: number; y: number }): Vector3 {
+    this.raycaster.setFromCamera(this.windowToCameraPosition(pos), this.camera);
     const target = new Vector3();
     this.raycaster.ray.intersectPlane(horizontalPlane, target);
     return target;
   }
 
-  private updateMouseLine = (position: { x: number; y: number }) => {
+  private updateCursor = (position: { x: number; y: number }) => {
     if (this.game.isWaitingForCommand()) {
-      this.movementLine.visible = true;
       const from = this.game.player.position;
-      const target = this.raycastWindowPosition(position);
-      const to = this.game.getMaximumMoveTowardsPoint(
-        this.game.player,
-        vec3to2(target)
-      );
-      const geo = this.movementLine.geometry as BufferGeometry;
-      const positionBuffer = geo.attributes.position as BufferAttribute;
-      positionBuffer.setXYZ(0, from.x, from.y, 0);
-      positionBuffer.setXYZ(1, to.x, to.y, 0);
-      positionBuffer.needsUpdate = true;
+      const object = this.raycastInteractive(position);
+      if (object === null) {
+        const target = this.raycastWorldPosition(position);
+        const to = this.game.getMaximumMoveTowardsPoint(
+          this.game.player,
+          vec3to2(target)
+        );
+        const geo = this.movementLine.geometry as BufferGeometry;
+        const positionBuffer = geo.attributes.position as BufferAttribute;
+        positionBuffer.setXYZ(0, from.x, from.y, 0);
+        positionBuffer.setXYZ(1, to.x, to.y, 0);
+        positionBuffer.needsUpdate = true;
+        this.movementLine.visible = true;
+      } else {
+        this.movementLine.visible = false;
+        console.log(object);
+      }
     } else {
       this.movementLine.visible = false;
     }
@@ -323,7 +383,7 @@ export class GameView extends Component<Props> {
 
   private handleMouseDown = (event: MouseEvent) => {
     if (!this.game.isWaitingForCommand()) return;
-    const target = this.raycastWindowPosition(event);
+    const target = this.raycastWorldPosition(event);
     const to = this.game.getMaximumMoveTowardsPoint(
       this.game.player,
       vec3to2(target)
@@ -426,10 +486,12 @@ export class GameView extends Component<Props> {
           character.stats.radius,
           character.species.color
         );
+        obj.layers.set(Layer.Interactive);
         obj.position.set(0, 0, characterZ);
         this.scene.add(obj);
         this.viewByCharacter.set(character, obj);
-      } else if (obj.parent === null) {
+      }
+      if (obj.parent === null) {
         this.scene.add(obj);
       }
       isVisible.add(obj);
