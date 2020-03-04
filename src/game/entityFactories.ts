@@ -1,5 +1,6 @@
 import { EntityType, Entity, AppearanceType } from "./Entity";
 import { Vector2 } from "three";
+import { getController } from "./Ai";
 
 function fixTypes<T extends Record<string, EntityType>>(
   struct: T
@@ -15,7 +16,8 @@ export const entityTypes = fixTypes({
     scale: 5,
     inititalStats: {
       moveSpeed: 5
-    }
+    },
+    controllerName: "none"
   },
 
   orc: {
@@ -25,7 +27,8 @@ export const entityTypes = fixTypes({
     scale: 5,
     inititalStats: {
       moveSpeed: 3
-    }
+    },
+    controllerName: "randomMovement"
   },
 
   stairsUp: {
@@ -33,7 +36,8 @@ export const entityTypes = fixTypes({
     noun: "stairs down",
     appearance: AppearanceType.StairsDown,
     scale: 4,
-    inititalStats: null
+    inititalStats: null,
+    controllerName: "none"
   },
 
   stairsDown: {
@@ -41,7 +45,8 @@ export const entityTypes = fixTypes({
     noun: "stairs down",
     appearance: AppearanceType.StairsDown,
     scale: 4,
-    inititalStats: null
+    inititalStats: null,
+    controllerName: "none"
   }
 });
 
@@ -59,6 +64,7 @@ export function createEntity(
     commandState: {
       currentCommand: null,
       currentCommandTickCount: 0
-    }
+    },
+    controller: getController(type.controllerName)
   };
 }

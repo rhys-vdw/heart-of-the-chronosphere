@@ -1,5 +1,6 @@
-import { Command, CommandStatus } from "./Command";
+import { Command } from "./Command";
 import { Vector2 } from "three";
+import { AiController, ControllerName } from "./Ai";
 
 // -- Entity --
 
@@ -7,7 +8,8 @@ export interface Entity {
   position: Vector2;
   readonly type: EntityType;
   readonly stats: Stats | null;
-  readonly commandState: CommandState | null;
+  readonly commandState: CommandState;
+  readonly controller: AiController | null;
 }
 
 // -- Components --
@@ -18,6 +20,7 @@ export interface EntityType {
   readonly color: number;
   readonly scale: number;
   readonly inititalStats: Readonly<Stats> | null;
+  readonly controllerName: ControllerName;
 }
 
 export enum AppearanceType {

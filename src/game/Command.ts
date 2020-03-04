@@ -15,6 +15,12 @@ export interface Command {
 
 // -- Commands --
 
+export class IdleCommand implements Command {
+  nextTick(entity: Entity, game: Game): CommandStatus {
+    return CommandStatus.InProgress;
+  }
+}
+
 export class MoveCommand implements Command {
   private target: Vector2;
   constructor(target: Vector2) {

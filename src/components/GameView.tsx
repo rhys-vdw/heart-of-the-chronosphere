@@ -12,6 +12,7 @@ import {
   LineSegments,
   Mesh,
   MeshBasicMaterial,
+  Object3D,
   OrthographicCamera,
   PerspectiveCamera,
   Plane,
@@ -19,17 +20,11 @@ import {
   Scene,
   Vector2,
   Vector3,
-  WebGLRenderer,
-  Object3D
+  WebGLRenderer
 } from "three";
-import { Entity, AppearanceType } from "../game/Entity";
+import { Command, MoveCommand, TakeStairsCommand } from "../game/Command";
+import { AppearanceType, Entity } from "../game/Entity";
 import { Game } from "../game/Game";
-import {
-  MoveCommand,
-  CommandStatus,
-  TakeStairsCommand,
-  Command
-} from "../game/Command";
 import { forEachRoom, getRoomCenter } from "../utility/Map";
 import {
   Feature,
@@ -37,7 +32,7 @@ import {
   SphereOptions
 } from "../utility/mazeGenerator";
 import { getMousePosition } from "../utility/mouse";
-import { vec2to3, vec3to2 } from "../utility/threeJsUtility";
+import { vec3to2 } from "../utility/threeJsUtility";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
 import { Segment } from "../vendor/2d-visibility/src/types";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
@@ -48,7 +43,7 @@ import * as styles from "./GameView.css";
 const visionZ = 0;
 const wallZ = 1;
 const featureZ = 2;
-const characterZ = 3;
+const entityZ = 3;
 
 // -- layers --
 
@@ -112,7 +107,7 @@ const squareGeometry = new BufferGeometry().setFromPoints([
 
 interface ViewUserData {
   feature: Feature;
-  character: Entity | null;
+  entity: Entity | null;
 }
 
 function setUserData(object: Object3D, userData: ViewUserData) {
@@ -159,7 +154,7 @@ function createStairs(isStairsUp: boolean, position: Vector2) {
   // TODO: Add detector
   const userData = {
     feature: isStairsUp ? Feature.StairsUp : Feature.StairsDown,
-    character: null
+    entity: null
   };
   setUserData(square, userData);
   setUserData(arrow, userData);
@@ -192,8 +187,8 @@ export class GameView extends Component<Props> {
   private wallLineSegments!: LineSegments;
   private lastTickTime: number = 0;
   private game: Game;
-  private characterViews: Line[] = [];
-  private viewByCharacter: WeakMap<Entity, Line> = new WeakMap();
+  private entityViews: Line[] = [];
+  private viewByEntity: WeakMap<Entity, Line> = new WeakMap();
   private raycaster!: Raycaster;
   private visibleLevelIndex = -1;
 
@@ -302,9 +297,9 @@ export class GameView extends Component<Props> {
         const delta = time - this.lastTickTime;
         const tickDelta = Math.floor(delta / tickDuration);
         for (let i = 0; i < tickDelta; i++) {
-          const status = this.game.tick();
+          this.game.tick();
           this.lastTickTime += tickDuration;
-          if (status === CommandStatus.Complete) {
+          if (this.game.isWaitingForCommand()) {
             break;
           }
         }
@@ -312,7 +307,7 @@ export class GameView extends Component<Props> {
       if (this.visibleLevelIndex !== this.game.getCurrentLevelIndex()) {
         this.updateWallLines();
       }
-      this.updateCharacters();
+      this.updateEntities();
       this.updateVisibilityPolygon();
       this.updateCursor(getMousePosition());
       this.camera.position.set(
@@ -515,44 +510,41 @@ export class GameView extends Component<Props> {
     viewGeometry.elementsNeedUpdate = true;
   }
 
-  private updateCharacters() {
+  private updateEntities() {
     const isVisible = new Set<Object3D>();
-    this.game.getVisibleEntities().forEach(character => {
-      let obj = this.viewByCharacter.get(character) ?? null;
+    this.game.getVisibleEntities().forEach(entity => {
+      let obj = this.viewByEntity.get(entity) ?? null;
       if (obj === null) {
-        switch (character.type.appearance) {
+        switch (entity.type.appearance) {
           case AppearanceType.Ring:
-            obj = GameView.createRing(
-              character.type.scale,
-              character.type.color
-            );
+            obj = GameView.createRing(entity.type.scale, entity.type.color);
             break;
           default:
             console.error(
-              `Unhandled appearance type: ${character.type.appearance}`
+              `Unhandled appearance type: ${entity.type.appearance}`
             );
             return;
         }
 
         obj.layers.set(Layer.Interactive);
-        setUserData(obj, { feature: Feature.None, character });
+        setUserData(obj, { feature: Feature.None, entity });
         this.scene.add(obj);
-        this.viewByCharacter.set(character, obj);
-        this.characterViews.push(obj);
+        this.viewByEntity.set(entity, obj);
+        this.entityViews.push(obj);
       }
-      obj.position.set(character.position.x, character.position.y, characterZ);
+      obj.position.set(entity.position.x, entity.position.y, entityZ);
       isVisible.add(obj);
     });
-    remove(this.characterViews, (obj, i) => {
+    remove(this.entityViews, (obj, i) => {
       if (isVisible.has(obj)) {
         return false;
       } else {
         const userData = expectUserData(obj);
-        if (userData.character === null) {
-          throw new Error("Expected character!");
+        if (userData.entity === null) {
+          throw new Error(`userData.entity === null`);
         }
         this.scene.remove(obj);
-        this.viewByCharacter.delete(userData.character);
+        this.viewByEntity.delete(userData.entity);
         return true;
       }
     });

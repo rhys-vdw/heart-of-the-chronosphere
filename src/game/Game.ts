@@ -30,7 +30,7 @@ export class Game {
     });
     this.player = createEntity("human");
     this.enterLevel(0);
-    // times(10, () => this.levels[0].entities.push(createEntity("orc")));
+    times(10, () => this.levels[0].entities.push(createEntity("orc")));
   }
 
   regenerateMaze_TEMP(mazeOptions: readonly MazeOptions[]) {
@@ -77,7 +77,10 @@ export class Game {
   }
 
   isWaitingForCommand(): boolean {
-    return this.player.commandState?.currentCommand === null;
+    if (this.player.commandState === null) {
+      throw new TypeError("Player must have a command state");
+    }
+    return this.player.commandState.currentCommand === null;
   }
 
   setPlayerCommand(command: Command): void {
@@ -115,45 +118,35 @@ export class Game {
           .add(new Vector2(direction.x, direction.y).setLength(maxDistance));
   }
 
-  tick(): CommandStatus {
+  tick(): void {
     if (this.isWaitingForCommand()) {
-      console.log("Waiting for command");
-      return CommandStatus.Complete;
+      throw new Error("Waiting for command");
     }
-    const level = this.getCurrentLevel();
-    console.log("entities", level.entities);
-    let playerCommandStatus = CommandStatus.InProgress;
-    for (const character of level.entities) {
-      if (character.commandState === null) {
-        if (character === this.player) {
-          playerCommandStatus = CommandStatus.Complete;
-        } else {
-          const target = this.randomPointInMap();
-          const to = this.getMaximumMoveTowardsPoint(character, target);
-          this.setCommand(character, new MoveCommand(to));
+
+    const { entities } = this.getCurrentLevel();
+
+    for (const entity of entities) {
+      const { commandState, controller } = entity;
+
+      // Get next command if entity is waiting for one.
+      if (commandState.currentCommand === null && controller !== null) {
+        commandState.currentCommand = controller.nextCommand(entity, this);
+      }
+
+      // Perform command, and clear it if it's complete.
+      if (commandState.currentCommand !== null) {
+        if (
+          commandState.currentCommand.nextTick(entity, this) ===
+          CommandStatus.Complete
+        ) {
+          commandState.currentCommand = null;
         }
       }
     }
-    for (const character of level.entities) {
-      const { commandState } = character;
-      if (commandState === null) {
-        continue;
-      }
-      if (commandState.currentCommand === null) {
-        throw new Error("Character has no command!");
-      }
-      if (
-        commandState.currentCommand.nextTick(character, this) ===
-        CommandStatus.Complete
-      ) {
-        commandState.currentCommand = null;
-      }
-    }
     this.tickCount++;
-    return playerCommandStatus;
   }
 
-  private randomPointInMap() {
+  public randomPointInMap() {
     return new Vector2(
       0,
       this.getCurrentLevel().maze.radius * Math.random()
