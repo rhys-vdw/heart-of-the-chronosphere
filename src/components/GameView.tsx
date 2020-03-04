@@ -1,6 +1,7 @@
 import { clamp, remove } from "lodash";
 import { Component, createRef, h } from "preact";
 import {
+  BufferAttribute,
   BufferGeometry,
   Camera,
   EllipseCurve,
@@ -18,22 +19,23 @@ import {
   Scene,
   Vector2,
   Vector3,
-  WebGLRenderer,
-  BufferAttribute
+  WebGLRenderer
 } from "three";
 import { Character, CommandStatus, Game, MoveCommand } from "../game/Game";
+import { forEachRoom, getRoomCenter } from "../utility/Map";
 import {
-  MazeOptions,
+  Feature,
   generateSphereOptions,
   SphereOptions
 } from "../utility/mazeGenerator";
 import { getMousePosition } from "../utility/mouse";
-import { vec3to2 } from "../utility/threeJsUtility";
+import { vec2to3, vec3to2 } from "../utility/threeJsUtility";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
 import { Segment } from "../vendor/2d-visibility/src/types";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
 import * as styles from "./GameView.css";
 
+// -- Materials --
 const wallMaterial = new LineBasicMaterial({ color: 0xffffff });
 const viewMaterial = new MeshBasicMaterial({
   color: 0xffffff,
@@ -56,6 +58,10 @@ const circleCurve = new EllipseCurve(
 );
 const ringGeometry = new BufferGeometry().setFromPoints(
   circleCurve.getPoints(32)
+);
+
+const stairsGeometry = new BufferGeometry().setFromPoints(
+  circleCurve.getPoints(3)
 );
 
 function createWallPoints(walls: readonly Segment[]) {
@@ -86,7 +92,8 @@ export class GameView extends Component<Props> {
 
   constructor(props: Props) {
     super(props);
-    this.game = new Game(generateSphereOptions(props.sphereOptions), {
+    const mazeOptions = generateSphereOptions(props.sphereOptions);
+    this.game = new Game(mazeOptions, {
       position: new Vector2(0, 0),
       species: { name: "Human", color: 0x5555ff },
       stats: {
@@ -101,7 +108,9 @@ export class GameView extends Component<Props> {
   // -- Lifecycle --
 
   componentDidUpdate() {
-    this.game.regenerateMaze_TEMP(generateSphereOptions(this.props.sphereOptions);
+    this.game.regenerateMaze_TEMP(
+      generateSphereOptions(this.props.sphereOptions)
+    );
     this.updateWallLines();
     this.updateVisibilityPolygon();
   }
@@ -117,6 +126,37 @@ export class GameView extends Component<Props> {
     this.wallLineSegments = new LineSegments(wallGeometry, wallMaterial);
     this.scene.add(this.wallLineSegments);
     this.updateWallLines();
+
+    // Add the features.
+
+    const { maze } = this.game.getCurrentLevel();
+    forEachRoom(maze, (room, i, j) => {
+      if (room.feature === Feature.None) {
+        return;
+      }
+      console.log(`Found ${room.feature} at (${i}, ${j})`);
+      const midPoint = getRoomCenter(maze, i, j);
+      switch (room.feature) {
+        case Feature.Entry:
+        case Feature.Exit: {
+          const mesh = new Line(
+            stairsGeometry,
+            GameView.getLineMaterial(0xffffff)
+          );
+          mesh.position.set(midPoint.x, midPoint.y, 0);
+          mesh.scale.set(5, 5, 5);
+          this.scene.add(mesh);
+          mesh.rotateZ(Math.PI / 6);
+          if (room.feature === Feature.Entry) {
+            mesh.rotateZ(Math.PI);
+          }
+          break;
+        }
+        default:
+          console.error(`Unmatched map feature: ${room.feature}`);
+          break;
+      }
+    });
 
     // Create movement indicator line.
 

@@ -25,7 +25,7 @@ export class Main extends Component<{}, State> {
       minRoomWidth: 60,
       minRingDepth: 30,
       radius: 300,
-      capHeight: 20,
+      capHeight: 12,
       sliceCount: 10
     }
   };
@@ -45,7 +45,7 @@ export class Main extends Component<{}, State> {
   render() {
     const { isPlaying } = this.state;
     const view = isPlaying ? (
-      <GameView mazeOptions={this.state.mazeOptions} />
+      <GameView sphereOptions={this.state.sphereOptions} />
     ) : (
       <Title onNewGame={this.handleNewGame} />
     );

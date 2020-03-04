@@ -59,9 +59,23 @@ export function generateMaze({
     );
   }
 
-  const rings = [sample(maze.rooms)!, sample(maze.rooms)!];
-  const enterExit =
-    rings[0] === rings[1] ? sampleSize(rings[0], 2) : rings.map(sample);
+  if (maze.rooms.length === 0) {
+    throw new Error("Maze has no rings!");
+  }
+  const rings = [
+    sample(maze.rooms)!,
+    sample(maze.rooms.filter(rs => rs.length > 1))!
+  ];
+  let enterExit: Room[];
+  if (rings[0] === rings[1]) {
+    if (rings[0].length <= 2) {
+      console.error({ rings });
+      throw new Error("Too few rooms!");
+    }
+    enterExit = sampleSize(rings[0], 2);
+  } else {
+    enterExit = rings.map(rooms => sample(rooms)) as Room[];
+  }
 
   enterExit[0]!.feature = Feature.Entry;
   enterExit[1]!.feature = Feature.Exit;
@@ -99,7 +113,7 @@ export function generateSphereOptions({
   return times<MazeOptions>(sliceCount, i => {
     const a = totalSliceHeight / 2 - sliceHeight * i;
     const c = radius;
-    const b = Math.sqrt(Math.pow(a, 2) - Math.pow(c, 2));
+    const b = Math.sqrt(Math.pow(c, 2) - Math.pow(a, 2));
     return {
       radius: b,
       blockChance,
