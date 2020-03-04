@@ -19,7 +19,8 @@ import {
   Scene,
   Vector2,
   Vector3,
-  WebGLRenderer
+  WebGLRenderer,
+  Object3D
 } from "three";
 import { Character, CommandStatus, Game, MoveCommand } from "../game/Game";
 import { forEachRoom, getRoomCenter } from "../utility/Map";
@@ -35,7 +36,15 @@ import { Segment } from "../vendor/2d-visibility/src/types";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
 import * as styles from "./GameView.css";
 
+// -- Heights --
+
+const visionZ = 0;
+const wallZ = 1;
+const featureZ = 2;
+const characterZ = 3;
+
 // -- Materials --
+
 const wallMaterial = new LineBasicMaterial({ color: 0xffffff });
 const viewMaterial = new MeshBasicMaterial({
   color: 0xffffff,
@@ -43,6 +52,16 @@ const viewMaterial = new MeshBasicMaterial({
   transparent: true
 });
 const horizontalPlane = new Plane(new Vector3(0, 0, 1), 0);
+
+const lineMaterialByColor = new Map<number, LineBasicMaterial>();
+function getLineMaterial(color: number) {
+  let material = lineMaterialByColor.get(color) ?? null;
+  if (material === null) {
+    material = new LineBasicMaterial({ color });
+    lineMaterialByColor.set(color, material);
+  }
+  return material;
+}
 
 const circleCurve = new EllipseCurve(
   0,
@@ -63,6 +82,37 @@ const ringGeometry = new BufferGeometry().setFromPoints(
 const stairsGeometry = new BufferGeometry().setFromPoints(
   circleCurve.getPoints(3)
 );
+const squareGeometry = new BufferGeometry().setFromPoints([
+  new Vector3(-0.5, 0.5, 0),
+  new Vector3(0.5, 0.5, 0),
+  new Vector3(0.5, -0.5, 0),
+  new Vector3(-0.5, -0.5, 0),
+  new Vector3(-0.5, 0.5, 0)
+]);
+function createStairs(isEntrance: boolean, position: Vector2) {
+  const stairs = new Object3D();
+  const material = getLineMaterial(0xffffff);
+
+  const square = new Line(squareGeometry, material);
+  square.scale.set(10, 10, 1);
+  stairs.attach(square);
+
+  const arrow = new Line(stairsGeometry, material);
+  arrow.scale.set(4, 4, 1);
+  if (isEntrance) {
+    arrow.translateY(-0.4);
+    arrow.rotateZ((Math.PI * 7) / 6);
+  } else {
+    arrow.translateY(0.4);
+    arrow.rotateZ(Math.PI / 6);
+  }
+
+  stairs.add(arrow);
+
+  stairs.position.set(position.x, position.y, featureZ);
+
+  return stairs;
+}
 
 function createWallPoints(walls: readonly Segment[]) {
   return walls.flatMap(w => [
@@ -124,6 +174,7 @@ export class GameView extends Component<Props> {
 
     const wallGeometry = new Geometry();
     this.wallLineSegments = new LineSegments(wallGeometry, wallMaterial);
+    this.wallLineSegments.position.set(0, 0, wallZ);
     this.scene.add(this.wallLineSegments);
     this.updateWallLines();
 
@@ -138,20 +189,11 @@ export class GameView extends Component<Props> {
       const midPoint = getRoomCenter(maze, i, j);
       switch (room.feature) {
         case Feature.Entry:
-        case Feature.Exit: {
-          const mesh = new Line(
-            stairsGeometry,
-            GameView.getLineMaterial(0xffffff)
-          );
-          mesh.position.set(midPoint.x, midPoint.y, 0);
-          mesh.scale.set(5, 5, 5);
-          this.scene.add(mesh);
-          mesh.rotateZ(Math.PI / 6);
-          if (room.feature === Feature.Entry) {
-            mesh.rotateZ(Math.PI);
-          }
+          this.scene.add(createStairs(true, midPoint));
           break;
-        }
+        case Feature.Exit:
+          this.scene.add(createStairs(false, midPoint));
+          break;
         default:
           console.error(`Unmatched map feature: ${room.feature}`);
           break;
@@ -167,7 +209,7 @@ export class GameView extends Component<Props> {
     ]);
     this.movementLine = new Line(
       movementLineGeometry,
-      GameView.getLineMaterial(this.game.player.species.color)
+      getLineMaterial(this.game.player.species.color)
     );
     this.movementLine.frustumCulled = false;
     this.movementLine.position.z = 100;
@@ -176,7 +218,7 @@ export class GameView extends Component<Props> {
     // Create view polygon.
 
     this.viewMesh = new Mesh(new Geometry(), viewMaterial);
-    this.viewMesh.translateZ(0);
+    this.viewMesh.position.set(0, 0, visionZ);
     this.viewMesh.frustumCulled = false;
     this.scene.add(this.viewMesh);
 
@@ -384,7 +426,7 @@ export class GameView extends Component<Props> {
           character.stats.radius,
           character.species.color
         );
-        obj.translateZ(-0.1);
+        obj.position.set(0, 0, characterZ);
         this.scene.add(obj);
         this.viewByCharacter.set(character, obj);
       } else if (obj.parent === null) {
@@ -405,18 +447,8 @@ export class GameView extends Component<Props> {
     });
   }
 
-  static lineMaterialByColor = new Map<number, LineBasicMaterial>();
-  private static getLineMaterial(color: number) {
-    let material = this.lineMaterialByColor.get(color) ?? null;
-    if (material === null) {
-      material = new LineBasicMaterial({ color });
-      this.lineMaterialByColor.set(color, material);
-    }
-    return material;
-  }
-
   private static createRing(radius: number, color: number) {
-    const ring = new Line(ringGeometry, this.getLineMaterial(color));
+    const ring = new Line(ringGeometry, getLineMaterial(color));
     ring.scale.x = radius;
     ring.scale.y = radius;
     return ring;
