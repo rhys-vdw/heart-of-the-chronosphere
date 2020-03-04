@@ -68,6 +68,10 @@ export class Game {
     });
   }
 
+  getCurrentLevelIndex() {
+    return this.currentLevelIndex;
+  }
+
   getCurrentLevel() {
     return this.levels[this.currentLevelIndex];
   }

@@ -48,7 +48,7 @@ export class TakeStairsCommand implements Command {
   }
   nextTick(character: Character, game: Game): CommandStatus {
     const speed = character.stats.moveSpeed;
-    const totalTicks = Math.min(10 - speed, 1);
+    const totalTicks = Math.max(30 - speed, 1);
     this.tickCount += 1;
     if (this.tickCount >= totalTicks) {
       if (this.isStairsUp) {

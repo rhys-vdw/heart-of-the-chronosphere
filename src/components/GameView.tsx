@@ -23,7 +23,12 @@ import {
   Object3D
 } from "three";
 import { Character, Game } from "../game/Game";
-import { MoveCommand, CommandStatus, TakeStairsCommand } from "../game/Command";
+import {
+  MoveCommand,
+  CommandStatus,
+  TakeStairsCommand,
+  Command
+} from "../game/Command";
 import { forEachRoom, getRoomCenter } from "../utility/Map";
 import {
   Feature,
@@ -189,6 +194,7 @@ export class GameView extends Component<Props> {
   private characterViews: Line[] = [];
   private viewByCharacter: WeakMap<Character, Line> = new WeakMap();
   private raycaster!: Raycaster;
+  private visibleLevelIndex = -1;
 
   constructor(props: Props) {
     super(props);
@@ -224,12 +230,13 @@ export class GameView extends Component<Props> {
 
     // Create view of map walls.
 
-    const wallGeometry = new Geometry();
-    this.wallLineSegments = new LineSegments(wallGeometry, wallMaterial);
+    this.wallLineSegments = new LineSegments(
+      new BufferGeometry(),
+      wallMaterial
+    );
     this.wallLineSegments.position.set(0, 0, wallZ);
     this.wallLineSegments.layers.set(Layer.Environment);
     this.scene.add(this.wallLineSegments);
-    this.updateWallLines();
 
     // Add the features.
 
@@ -309,6 +316,9 @@ export class GameView extends Component<Props> {
             break;
           }
         }
+      }
+      if (this.visibleLevelIndex !== this.game.getCurrentLevelIndex()) {
+        this.updateWallLines();
       }
       this.updateCharacters();
       this.updateVisibilityPolygon();
@@ -399,6 +409,7 @@ export class GameView extends Component<Props> {
   private handleMouseDown = (event: MouseEvent) => {
     if (!this.game.isWaitingForCommand()) return;
     const object = this.raycastInteractive(event);
+    let command: Command | null = null;
     if (object !== null) {
       const userData = getUserData(object);
       if (userData === null) {
@@ -408,10 +419,10 @@ export class GameView extends Component<Props> {
       const { feature } = userData;
       switch (feature) {
         case Feature.StairsUp:
-          this.game.setPlayerCommand(new TakeStairsCommand(true));
+          command = new TakeStairsCommand(true);
           break;
         case Feature.StairsDown:
-          this.game.setPlayerCommand(new TakeStairsCommand(false));
+          command = new TakeStairsCommand(false);
           break;
       }
     } else {
@@ -420,7 +431,10 @@ export class GameView extends Component<Props> {
         this.game.player,
         vec3to2(target)
       );
-      this.game.setPlayerCommand(new MoveCommand(to));
+      command = new MoveCommand(to);
+    }
+    if (command !== null) {
+      this.game.setPlayerCommand(command);
       this.lastTickTime = Date.now();
     }
   };
@@ -472,6 +486,7 @@ export class GameView extends Component<Props> {
     // geometry.setFromPoints(createWallPoints(this.state.map.walls));
     // geometry.verticesNeedUpdate = true;
 
+    this.visibleLevelIndex = this.game.getCurrentLevelIndex();
     this.wallLineSegments.geometry.dispose();
     this.wallLineSegments.geometry = new Geometry().setFromPoints(
       createWallPoints(this.game.getCurrentLevel().map.walls)
