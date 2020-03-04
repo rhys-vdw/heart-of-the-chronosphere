@@ -1,4 +1,5 @@
 import { times, sampleSize, sample } from "lodash";
+import { Vector2 } from "three";
 
 export enum Feature {
   None,
@@ -122,3 +123,24 @@ export function generateSphereOptions({
     };
   });
 }
+
+export const getRingDepth = ({ radius, rooms }: Maze) =>
+  radius * (1 / rooms.length);
+
+export const forEachRoom = (
+  maze: Maze,
+  cb: (room: Room, ringIndex: number, roomIndex: number) => void
+) => maze.rooms.forEach((ring, i) => ring.forEach((room, j) => cb(room, i, j)));
+
+export const getRoomCenter = (
+  maze: Maze,
+  ringIndex: number,
+  roomIndex: number
+): Vector2 => {
+  const ringDepth = getRingDepth(maze);
+  const midRadius = (ringIndex + 0.5) * ringDepth;
+  return new Vector2(0, midRadius).rotateAround(
+    new Vector2(0, 0),
+    (Math.PI * 2 * (roomIndex + 0.5)) / maze.rooms[ringIndex].length
+  );
+};

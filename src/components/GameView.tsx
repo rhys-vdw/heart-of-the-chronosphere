@@ -25,10 +25,11 @@ import {
 import { Command, MoveCommand, TakeStairsCommand } from "../game/Command";
 import { AppearanceType, Entity } from "../game/Entity";
 import { Game } from "../game/Game";
-import { forEachRoom, getRoomCenter } from "../utility/Map";
 import {
   Feature,
+  forEachRoom,
   generateSphereOptions,
+  getRoomCenter,
   SphereOptions
 } from "../utility/mazeGenerator";
 import { getMousePosition } from "../utility/mouse";
