@@ -3,11 +3,7 @@ import { Vector2 } from "three";
 import { Map, mazeToMap } from "../utility/Map";
 import { rayCastSegments } from "../utility/rayCast";
 import { Maze, MazeOptions, generateMaze } from "../utility/mazeGenerator";
-
-export const enum CommandStatus {
-  InProgress,
-  Complete
-}
+import { MoveCommand, Command, CommandStatus } from "./Command";
 
 export interface Species {
   name: string;
@@ -17,36 +13,6 @@ export interface Species {
 export interface CharacterStats {
   moveSpeed: number;
   radius: number;
-}
-
-export interface Command {
-  nextTick(character: Character, game: Game): CommandStatus;
-}
-
-export class MoveCommand implements Command {
-  private target: Vector2;
-  constructor(target: Vector2) {
-    this.target = target;
-  }
-  nextTick(character: Character, game: Game): CommandStatus {
-    const speed = character.stats.moveSpeed;
-    const distance = speed * 0.5;
-    const from = character.position;
-    const to = this.target;
-    const offset = new Vector2(to.x - from.x, to.y - from.y);
-    const targetDistance = offset.length();
-    let status: CommandStatus;
-    if (targetDistance <= distance) {
-      offset.setLength(targetDistance);
-      status = CommandStatus.Complete;
-    } else {
-      offset.setLength(distance);
-      status = CommandStatus.InProgress;
-    }
-    character.position.x += offset.x;
-    character.position.y += offset.y;
-    return status;
-  }
 }
 
 export interface Character {
@@ -108,6 +74,18 @@ export class Game {
 
   getVisibleCharacters(): ReadonlyArray<Character> {
     return this.levels[this.currentLevelIndex].characters;
+  }
+
+  ascend() {
+    this.enterLevel(this.currentLevelIndex + 1);
+  }
+
+  descend() {
+    if (this.currentLevelIndex === 0) {
+      console.error("NYI: Exit game early");
+      return;
+    }
+    this.enterLevel(this.currentLevelIndex - 1);
   }
 
   enterLevel(levelIndex: number) {

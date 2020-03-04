@@ -22,7 +22,8 @@ import {
   WebGLRenderer,
   Object3D
 } from "three";
-import { Character, CommandStatus, Game, MoveCommand } from "../game/Game";
+import { Character, Game } from "../game/Game";
+import { MoveCommand, CommandStatus, TakeStairsCommand } from "../game/Command";
 import { forEachRoom, getRoomCenter } from "../utility/Map";
 import {
   Feature,
@@ -119,9 +120,8 @@ function getUserData(object: Object3D): ViewUserData | null {
     : null;
 }
 
-function createStairs(isEntrance: boolean, position: Vector2) {
+function createStairs(isStairsUp: boolean, position: Vector2) {
   const stairs = new Object3D();
-  setUserData(stairs, { feature: isEntrance ? Feature.Entry : Feature.Exit });
   const material = getLineMaterial(0xffffff);
 
   const square = new Line(squareGeometry, material);
@@ -132,15 +132,21 @@ function createStairs(isEntrance: boolean, position: Vector2) {
   const arrow = new Line(stairsGeometry, material);
   arrow.layers.set(Layer.Interactive);
   arrow.scale.set(4, 4, 1);
-  if (isEntrance) {
+  if (isStairsUp) {
     arrow.translateY(-0.4);
     arrow.rotateZ((Math.PI * 7) / 6);
   } else {
     arrow.translateY(0.4);
     arrow.rotateZ(Math.PI / 6);
   }
-
   stairs.add(arrow);
+
+  // TODO: Add detector
+  const userData = {
+    feature: isStairsUp ? Feature.StairsUp : Feature.StairsDown
+  };
+  setUserData(square, userData);
+  setUserData(arrow, userData);
 
   stairs.position.set(position.x, position.y, featureZ);
 
@@ -225,10 +231,10 @@ export class GameView extends Component<Props> {
       console.log(`Found ${room.feature} at (${i}, ${j})`);
       const midPoint = getRoomCenter(maze, i, j);
       switch (room.feature) {
-        case Feature.Entry:
+        case Feature.StairsUp:
           this.scene.add(createStairs(true, midPoint));
           break;
-        case Feature.Exit:
+        case Feature.StairsDown:
           this.scene.add(createStairs(false, midPoint));
           break;
         default:
@@ -358,7 +364,6 @@ export class GameView extends Component<Props> {
 
   private updateCursor = (position: { x: number; y: number }) => {
     if (this.game.isWaitingForCommand()) {
-      const from = this.game.player.position;
       const object = this.raycastInteractive(position);
       if (object === null) {
         const target = this.raycastWorldPosition(position);
@@ -368,6 +373,7 @@ export class GameView extends Component<Props> {
         );
         const geo = this.movementLine.geometry as BufferGeometry;
         const positionBuffer = geo.attributes.position as BufferAttribute;
+        const from = this.game.player.position;
         positionBuffer.setXYZ(0, from.x, from.y, 0);
         positionBuffer.setXYZ(1, to.x, to.y, 0);
         positionBuffer.needsUpdate = true;
@@ -383,13 +389,31 @@ export class GameView extends Component<Props> {
 
   private handleMouseDown = (event: MouseEvent) => {
     if (!this.game.isWaitingForCommand()) return;
-    const target = this.raycastWorldPosition(event);
-    const to = this.game.getMaximumMoveTowardsPoint(
-      this.game.player,
-      vec3to2(target)
-    );
-    this.game.setPlayerCommand(new MoveCommand(to));
-    this.lastTickTime = Date.now();
+    const object = this.raycastInteractive(event);
+    if (object !== null) {
+      const userData = getUserData(object);
+      if (userData === null) {
+        console.error("No user data for object", object);
+        return;
+      }
+      const { feature } = userData;
+      switch (feature) {
+        case Feature.StairsUp:
+          this.game.setPlayerCommand(new TakeStairsCommand(true));
+          break;
+        case Feature.StairsDown:
+          this.game.setPlayerCommand(new TakeStairsCommand(false));
+          break;
+      }
+    } else {
+      const target = this.raycastWorldPosition(event);
+      const to = this.game.getMaximumMoveTowardsPoint(
+        this.game.player,
+        vec3to2(target)
+      );
+      this.game.setPlayerCommand(new MoveCommand(to));
+      this.lastTickTime = Date.now();
+    }
   };
 
   private zoom = 2;

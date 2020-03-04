@@ -2,8 +2,8 @@ import { times, sampleSize, sample } from "lodash";
 
 export enum Feature {
   None,
-  Entry,
-  Exit
+  StairsUp,
+  StairsDown
 }
 
 export interface MazeOptions {
@@ -77,8 +77,8 @@ export function generateMaze({
     enterExit = rings.map(rooms => sample(rooms)) as Room[];
   }
 
-  enterExit[0]!.feature = Feature.Entry;
-  enterExit[1]!.feature = Feature.Exit;
+  enterExit[0]!.feature = Feature.StairsUp;
+  enterExit[1]!.feature = Feature.StairsDown;
 
   return maze;
 }
