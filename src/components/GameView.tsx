@@ -22,7 +22,8 @@ import {
   WebGLRenderer,
   Object3D
 } from "three";
-import { Character, Game } from "../game/Game";
+import { Entity, AppearanceType } from "../game/Entity";
+import { Game } from "../game/Game";
 import {
   MoveCommand,
   CommandStatus,
@@ -111,7 +112,7 @@ const squareGeometry = new BufferGeometry().setFromPoints([
 
 interface ViewUserData {
   feature: Feature;
-  character: Character | null;
+  character: Entity | null;
 }
 
 function setUserData(object: Object3D, userData: ViewUserData) {
@@ -192,23 +193,14 @@ export class GameView extends Component<Props> {
   private lastTickTime: number = 0;
   private game: Game;
   private characterViews: Line[] = [];
-  private viewByCharacter: WeakMap<Character, Line> = new WeakMap();
+  private viewByCharacter: WeakMap<Entity, Line> = new WeakMap();
   private raycaster!: Raycaster;
   private visibleLevelIndex = -1;
 
   constructor(props: Props) {
     super(props);
     const mazeOptions = generateSphereOptions(props.sphereOptions);
-    this.game = new Game(mazeOptions, {
-      position: new Vector2(0, 0),
-      species: { name: "Human", color: 0x5555ff },
-      stats: {
-        moveSpeed: 5,
-        radius: 5
-      },
-      currentCommand: null,
-      currentCommandTickCount: 0
-    });
+    this.game = new Game(mazeOptions);
     this.raycaster = new Raycaster();
     this.raycaster.layers.set(Layer.Interactive);
   }
@@ -269,7 +261,7 @@ export class GameView extends Component<Props> {
     ]);
     this.movementLine = new Line(
       movementLineGeometry,
-      getLineMaterial(this.game.player.species.color)
+      getLineMaterial(this.game.player.type.color)
     );
     this.movementLine.layers.set(Layer.Ui);
     this.movementLine.frustumCulled = false;
@@ -524,25 +516,32 @@ export class GameView extends Component<Props> {
   }
 
   private updateCharacters() {
-    const isVisible = new Set<Line>();
-    this.game.getVisibleCharacters().forEach(character => {
+    const isVisible = new Set<Object3D>();
+    this.game.getVisibleEntities().forEach(character => {
       let obj = this.viewByCharacter.get(character) ?? null;
       if (obj === null) {
-        obj = GameView.createRing(
-          character.stats.radius,
-          character.species.color
-        );
-        setUserData(obj, { feature: Feature.None, character });
+        switch (character.type.appearance) {
+          case AppearanceType.Ring:
+            obj = GameView.createRing(
+              character.type.scale,
+              character.type.color
+            );
+            break;
+          default:
+            console.error(
+              `Unhandled appearance type: ${character.type.appearance}`
+            );
+            return;
+        }
+
         obj.layers.set(Layer.Interactive);
-        obj.position.set(0, 0, characterZ);
+        setUserData(obj, { feature: Feature.None, character });
         this.scene.add(obj);
         this.viewByCharacter.set(character, obj);
         this.characterViews.push(obj);
       }
+      obj.position.set(character.position.x, character.position.y, characterZ);
       isVisible.add(obj);
-
-      obj.position.x = character.position.x;
-      obj.position.y = character.position.y;
     });
     remove(this.characterViews, (obj, i) => {
       if (isVisible.has(obj)) {

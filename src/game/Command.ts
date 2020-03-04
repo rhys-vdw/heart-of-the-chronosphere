@@ -1,4 +1,5 @@
-import { Character, Game } from "./Game";
+import { Entity } from "./Entity";
+import { Game } from "./Game";
 import { Vector2 } from "three";
 
 // -- Types --
@@ -9,7 +10,7 @@ export const enum CommandStatus {
 }
 
 export interface Command {
-  nextTick(character: Character, game: Game): CommandStatus;
+  nextTick(entity: Entity, game: Game): CommandStatus;
 }
 
 // -- Commands --
@@ -19,10 +20,15 @@ export class MoveCommand implements Command {
   constructor(target: Vector2) {
     this.target = target;
   }
-  nextTick(character: Character, game: Game): CommandStatus {
-    const speed = character.stats.moveSpeed;
+  nextTick(entity: Entity, game: Game): CommandStatus {
+    if (entity.stats === null) {
+      throw new TypeError(
+        `${entity.type.noun} cannot move as it has no stats object`
+      );
+    }
+    const speed = entity.stats.moveSpeed;
     const distance = speed * 0.5;
-    const from = character.position;
+    const from = entity.position;
     const to = this.target;
     const offset = new Vector2(to.x - from.x, to.y - from.y);
     const targetDistance = offset.length();
@@ -34,8 +40,8 @@ export class MoveCommand implements Command {
       offset.setLength(distance);
       status = CommandStatus.InProgress;
     }
-    character.position.x += offset.x;
-    character.position.y += offset.y;
+    entity.position.x += offset.x;
+    entity.position.y += offset.y;
     return status;
   }
 }
@@ -46,8 +52,13 @@ export class TakeStairsCommand implements Command {
   constructor(isStairsUp: boolean) {
     this.isStairsUp = isStairsUp;
   }
-  nextTick(character: Character, game: Game): CommandStatus {
-    const speed = character.stats.moveSpeed;
+  nextTick(entity: Entity, game: Game): CommandStatus {
+    if (entity.stats === null) {
+      throw new TypeError(
+        `${entity.type.noun} cannot take the stairs as it has no stats component`
+      );
+    }
+    const speed = entity.stats.moveSpeed;
     const totalTicks = Math.max(30 - speed, 1);
     this.tickCount += 1;
     if (this.tickCount >= totalTicks) {

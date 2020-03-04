@@ -4,27 +4,11 @@ import { Map, mazeToMap } from "../utility/Map";
 import { rayCastSegments } from "../utility/rayCast";
 import { Maze, MazeOptions, generateMaze } from "../utility/mazeGenerator";
 import { MoveCommand, Command, CommandStatus } from "./Command";
-
-export interface Species {
-  name: string;
-  color: number;
-}
-
-export interface CharacterStats {
-  moveSpeed: number;
-  radius: number;
-}
-
-export interface Character {
-  position: Vector2;
-  species: Species;
-  stats: CharacterStats;
-  currentCommand: Command | null;
-  currentCommandTickCount: number;
-}
+import { Entity } from "./Entity";
+import { createEntity } from "./entityFactories";
 
 export interface Level {
-  characters: Character[];
+  entities: Entity[];
   map: Map;
   maze: Maze;
 }
@@ -32,36 +16,28 @@ export interface Level {
 export class Game {
   levels: Level[];
   currentLevelIndex: number = -1;
-  player: Character;
+  player: Entity;
   tickCount: number = 0;
 
-  constructor(mazeOptions: readonly MazeOptions[], player: Character) {
+  constructor(mazeOptions: readonly MazeOptions[]) {
     this.levels = mazeOptions.map(o => {
       const maze = generateMaze(o);
       return {
-        characters: [],
+        entities: [],
         maze,
         map: mazeToMap(maze)
       };
     });
-    this.player = player;
+    this.player = createEntity("human");
     this.enterLevel(0);
-    times(10, () =>
-      this.levels[0].characters.push({
-        position: this.randomPointInMap(),
-        species: { name: "Orc", color: 0x33ff33 },
-        stats: { moveSpeed: 3, radius: 5 },
-        currentCommand: null,
-        currentCommandTickCount: 0
-      })
-    );
+    // times(10, () => this.levels[0].entities.push(createEntity("orc")));
   }
 
   regenerateMaze_TEMP(mazeOptions: readonly MazeOptions[]) {
     this.levels = mazeOptions.map(o => {
       const maze = generateMaze(o);
       return {
-        characters: [],
+        entities: [],
         maze,
         map: mazeToMap(maze)
       };
@@ -76,8 +52,8 @@ export class Game {
     return this.levels[this.currentLevelIndex];
   }
 
-  getVisibleCharacters(): ReadonlyArray<Character> {
-    return this.getCurrentLevel().characters;
+  getVisibleEntities(): ReadonlyArray<Entity> {
+    return this.getCurrentLevel().entities;
   }
 
   ascend() {
@@ -94,30 +70,34 @@ export class Game {
 
   enterLevel(levelIndex: number) {
     if (this.currentLevelIndex !== -1) {
-      remove(this.levels[this.currentLevelIndex].characters, this.player);
+      remove(this.getCurrentLevel().entities, this.player);
     }
     this.currentLevelIndex = levelIndex;
-    this.levels[this.currentLevelIndex].characters.push(this.player);
+    this.getCurrentLevel().entities.push(this.player);
   }
 
   isWaitingForCommand(): boolean {
-    return this.player.currentCommand === null;
+    return this.player.commandState?.currentCommand === null;
   }
 
   setPlayerCommand(command: Command): void {
     this.setCommand(this.player, command);
   }
 
-  setCommand(character: Character, command: Command) {
-    if (character.currentCommand !== null) {
-      throw new Error("character is not waiting for command");
+  setCommand(entity: Entity, command: Command) {
+    const { commandState } = entity;
+    if (commandState === null) {
+      throw new Error(`${entity.type.noun} cannot accept commands`);
     }
-    character.currentCommand = command;
-    character.currentCommandTickCount = 0;
+    if (commandState.currentCommand !== null) {
+      throw new Error(`${entity.type.noun} is already performing a command`);
+    }
+    commandState.currentCommand = command;
+    commandState.currentCommandTickCount = 0;
   }
 
-  getMaximumMoveTowardsPoint(character: Character, point: Vector2): Vector2 {
-    const from = character.position;
+  getMaximumMoveTowardsPoint(entity: Entity, point: Vector2): Vector2 {
+    const from = entity.position;
     const offset = point.clone().sub(from);
     const direction = offset.clone().normalize();
     let maxDistance = rayCastSegments(
@@ -127,7 +107,7 @@ export class Game {
     );
     // Subtract radius from max distance to stop exact at the wall.
     maxDistance =
-      maxDistance === null ? Infinity : maxDistance - character.stats.radius;
+      maxDistance === null ? Infinity : maxDistance - entity.type.scale;
     return maxDistance > offset.length()
       ? point
       : from
@@ -140,10 +120,11 @@ export class Game {
       console.log("Waiting for command");
       return CommandStatus.Complete;
     }
-    const level = this.levels[this.currentLevelIndex];
+    const level = this.getCurrentLevel();
+    console.log("entities", level.entities);
     let playerCommandStatus = CommandStatus.InProgress;
-    for (const character of level.characters) {
-      if (character.currentCommand === null) {
+    for (const character of level.entities) {
+      if (character.commandState === null) {
         if (character === this.player) {
           playerCommandStatus = CommandStatus.Complete;
         } else {
@@ -153,15 +134,19 @@ export class Game {
         }
       }
     }
-    for (const character of level.characters) {
-      if (character.currentCommand === null) {
+    for (const character of level.entities) {
+      const { commandState } = character;
+      if (commandState === null) {
+        continue;
+      }
+      if (commandState.currentCommand === null) {
         throw new Error("Character has no command!");
       }
       if (
-        character.currentCommand.nextTick(character, this) ===
+        commandState.currentCommand.nextTick(character, this) ===
         CommandStatus.Complete
       ) {
-        character.currentCommand = null;
+        commandState.currentCommand = null;
       }
     }
     this.tickCount++;
