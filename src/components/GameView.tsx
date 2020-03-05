@@ -200,6 +200,7 @@ export class GameView extends Component<Props, State> {
     super(props);
     const mazeOptions = generateSphereOptions(props.sphereOptions);
     this.game = new Game(mazeOptions);
+    this.addEvent(...this.game.startGame());
     this.raycaster = new Raycaster();
     this.raycaster.layers.set(Layer.Interactive);
   }
@@ -209,6 +210,7 @@ export class GameView extends Component<Props, State> {
   componentDidUpdate(prevProps: Props) {
     if (prevProps.sphereOptions !== this.props.sphereOptions) {
       this.game = new Game(generateSphereOptions(this.props.sphereOptions));
+      this.addEvent(...this.game.startGame());
       this.updateWallLines();
       this.updateVisibilityPolygon();
     }

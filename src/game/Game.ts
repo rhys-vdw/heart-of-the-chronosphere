@@ -33,8 +33,6 @@ export class Game {
       };
     });
     this.player = createEntity("human");
-    this.enterLevel(0);
-    // times(10, () => this.levels[0].entities.push(createEntity("orc")));
   }
 
   getCurrentLevelIndex() {
@@ -146,6 +144,11 @@ export class Game {
           .add(new Vector2(direction.x, direction.y).setLength(maxDistance));
   }
 
+  startGame() {
+    this.enterLevel(0);
+    return this.flushEvents();
+  }
+
   tick(): string[] {
     if (this.isWaitingForCommand()) {
       throw new Error("Waiting for command");
@@ -172,16 +175,20 @@ export class Game {
       }
     }
     this.tickCount++;
+    return this.flushEvents();
+  }
+
+  private flushEvents(): string[] {
     const events = this.eventBuffer;
     this.eventBuffer = [];
     return events;
   }
 
-  public addEvent(message: string) {
+  addEvent(message: string) {
     this.eventBuffer.push(message);
   }
 
-  public randomPointInMap() {
+  randomPointInMap() {
     return new Vector2(
       0,
       this.getCurrentLevel().maze.radius * Math.random()
