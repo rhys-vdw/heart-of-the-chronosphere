@@ -1,0 +1,23 @@
+.container {
+  overflow-y: scroll;
+  height: 100%;
+}
+
+.container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 1em;
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.list li {
+  margin-top: 0.5em;
+}

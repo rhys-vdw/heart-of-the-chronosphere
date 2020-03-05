@@ -22,7 +22,6 @@ import {
   Vector3,
   WebGLRenderer
 } from "three";
-import { Command, MoveCommand, TakeStairsCommand } from "../game/Command";
 import { AppearanceType, Entity } from "../game/Entity";
 import { Game } from "../game/Game";
 import { generateSphereOptions, SphereOptions } from "../utility/mazeGenerator";
@@ -31,6 +30,8 @@ import { vec3to2 } from "../utility/threeJsUtility";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
 import { Segment } from "../vendor/2d-visibility/src/types";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
+import { GameLayout } from "./GameLayout";
+import { EventLog } from "./EventLog";
 import * as styles from "./GameView.css";
 
 // -- Heights --
@@ -118,7 +119,6 @@ interface ViewUserData {
 }
 
 function setUserData(object: Object3D, userData: ViewUserData) {
-  console.log("setting user data", object);
   object.userData = userData;
 }
 
@@ -170,11 +170,14 @@ function createWallPoints(walls: readonly Segment[]) {
 
 interface Props {
   readonly sphereOptions: SphereOptions;
+  readonly tickDuration: number;
 }
 
-const tickDuration = 1000 / 60;
+interface State {
+  readonly events: readonly string[];
+}
 
-export class GameView extends Component<Props> {
+export class GameView extends Component<Props, State> {
   private canvasRef = createRef<HTMLCanvasElement>();
   private renderer!: WebGLRenderer;
   private scene!: Scene;
@@ -189,6 +192,10 @@ export class GameView extends Component<Props> {
   private raycaster!: Raycaster;
   private visibleLevelIndex = -1;
 
+  state: State = {
+    events: []
+  };
+
   constructor(props: Props) {
     super(props);
     const mazeOptions = generateSphereOptions(props.sphereOptions);
@@ -199,10 +206,12 @@ export class GameView extends Component<Props> {
 
   // -- Lifecycle --
 
-  componentDidUpdate() {
-    this.game = new Game(generateSphereOptions(this.props.sphereOptions));
-    this.updateWallLines();
-    this.updateVisibilityPolygon();
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.sphereOptions !== this.props.sphereOptions) {
+      this.game = new Game(generateSphereOptions(this.props.sphereOptions));
+      this.updateWallLines();
+      this.updateVisibilityPolygon();
+    }
   }
 
   componentDidMount() {
@@ -252,7 +261,6 @@ export class GameView extends Component<Props> {
     this.camera.layers.enable(Layer.Vision);
     this.camera.layers.enable(Layer.Ui);
     this.camera.layers.enable(Layer.Interactive);
-    window.addEventListener("wheel", this.handleWheel);
 
     // Initialize renderer.
 
@@ -266,16 +274,21 @@ export class GameView extends Component<Props> {
     this.lastTickTime = Date.now();
     const animate = () => {
       if (!this.game.isWaitingForCommand()) {
+        const { tickDuration } = this.props;
         const time = Date.now();
         const delta = time - this.lastTickTime;
         const tickDelta = Math.floor(delta / tickDuration);
         for (let i = 0; i < tickDelta; i++) {
-          this.game.tick();
+          const events = this.game.tick();
+          this.addEvent(...events);
           this.lastTickTime += tickDuration;
           if (this.game.isWaitingForCommand()) {
             break;
           }
         }
+      } else {
+        // Hack to pause game while running.
+        this.lastTickTime = Date.now();
       }
       if (this.visibleLevelIndex !== this.game.getCurrentLevelIndex()) {
         this.updateWallLines();
@@ -297,16 +310,21 @@ export class GameView extends Component<Props> {
 
   componentWillUnmount() {
     window.removeEventListener("resize", this.updateRendererSize);
-    window.removeEventListener("wheel", this.handleWheel);
   }
 
   render() {
     const canvasProps = { ref: this.canvasRef, resize: true } as any;
     return (
-      <canvas
-        className={styles.canvas}
-        onMouseDown={this.handleMouseDown}
-        {...canvasProps}
+      <GameLayout
+        viewChild={
+          <canvas
+            className={styles.canvas}
+            onMouseDown={this.handleMouseDown}
+            onWheel={this.handleWheel}
+            {...canvasProps}
+          />
+        }
+        logChild={<EventLog events={this.state.events} />}
       />
     );
   }
@@ -369,12 +387,15 @@ export class GameView extends Component<Props> {
   private handleMouseDown = (event: MouseEvent) => {
     if (!this.game.isWaitingForCommand()) return;
     const object = this.raycastInteractive(event);
-    let command: Command | null = null;
     if (object !== null) {
       const userData = expectUserData(object);
       const { entity } = userData;
-      if (entity.type.getUseCommand !== null) {
-        command = entity.type.getUseCommand();
+      if (this.game.isUsable(entity)) {
+        if (this.game.isInReachOfPlayer(entity)) {
+          this.game.use(entity);
+        } else {
+          this.addEvent(`${entity.type.noun} is out of range`);
+        }
       }
     } else {
       const target = this.raycastWorldPosition(event);
@@ -382,13 +403,15 @@ export class GameView extends Component<Props> {
         this.game.player,
         vec3to2(target)
       );
-      command = new MoveCommand(to);
-    }
-    if (command !== null) {
-      this.game.setPlayerCommand(command);
-      this.lastTickTime = Date.now();
+      this.game.moveTo(to);
     }
   };
+
+  private addEvent(...newEvents: string[]) {
+    if (newEvents.length > 0) {
+      this.setState(({ events }) => ({ events: events.concat(newEvents) }));
+    }
+  }
 
   private zoom = 2;
   private readonly minZoom = 1.5;

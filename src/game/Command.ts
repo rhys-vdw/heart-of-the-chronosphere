@@ -1,6 +1,7 @@
 import { Entity } from "./Entity";
 import { Game } from "./Game";
 import { Vector2 } from "three";
+import { entityTypes } from "./entityFactories";
 
 // -- Types --
 
@@ -64,15 +65,22 @@ export class TakeStairsCommand implements Command {
         `${entity.type.noun} cannot take the stairs as it has no stats component`
       );
     }
+    const { isStairsUp } = this;
     const speed = entity.stats.moveSpeed;
     const totalTicks = Math.max(30 - speed, 1);
+    if (this.tickCount === 0) {
+      game.addEvent(`${entity.type.noun} enters the stairs...`);
+    }
     this.tickCount += 1;
     if (this.tickCount >= totalTicks) {
-      if (this.isStairsUp) {
-        game.ascend();
-      } else {
-        game.descend();
-      }
+      game.addEvent(`${entity.type.noun} exits the stairwell`);
+      const nextLevelIndex =
+        game.getCurrentLevelIndex() + (isStairsUp ? 1 : -1);
+      game.enterLevel(nextLevelIndex);
+      const exitEntityType = this.isStairsUp
+        ? entityTypes.stairsDown
+        : entityTypes.stairsUp;
+      entity.position.copy(game.findEntityOfType(exitEntityType).position);
       return CommandStatus.Complete;
     }
     return CommandStatus.InProgress;

@@ -14,10 +14,12 @@ export interface Level {
 }
 
 export class Game {
+  static readonly useRange = 13;
   levels: Level[];
   currentLevelIndex: number = -1;
   player: Entity;
   tickCount: number = 0;
+  eventBuffer: string[] = [];
 
   constructor(mazeOptions: readonly MazeOptions[]) {
     this.levels = mazeOptions.map(o => {
@@ -47,29 +49,37 @@ export class Game {
     return this.getCurrentLevel().entities;
   }
 
-  ascend() {
-    if (this.currentLevelIndex === this.levels.length - 1) {
-      console.error("NYI: Exit through roof");
-      return;
-    }
-    this.enterLevel(this.currentLevelIndex + 1);
-    this.player.position.copy(
-      this.findEntityOfType(entityTypes.stairsDown).position
-    );
+  isUsable(useTarget: Entity): boolean {
+    return useTarget.type.getUseCommand !== null;
   }
 
-  descend() {
-    if (this.currentLevelIndex === 0) {
-      console.error("NYI: Exit game early");
-      return;
-    }
-    this.enterLevel(this.currentLevelIndex - 1);
-    this.player.position.copy(
-      this.findEntityOfType(entityTypes.stairsUp).position
-    );
+  isInReach(actor: Entity, target: Entity): boolean {
+    return target.position.distanceTo(actor.position) <= Game.useRange;
   }
 
-  private findEntityOfType(entityType: EntityType) {
+  isInReachOfPlayer(target: Entity): boolean {
+    return this.isInReach(this.player, target);
+  }
+
+  use(useTarget: Entity) {
+    if (!this.isUsable(useTarget)) {
+      throw new Error(`${useTarget.type.noun} is not usable`);
+    }
+    if (!this.isInReach(this.player, useTarget)) {
+      throw new Error(`${useTarget.type.noun} is out of range`);
+    }
+    this.setPlayerCommand(useTarget.type.getUseCommand!());
+  }
+
+  private logEvent(message: string) {
+    console.log(`EVENT: ${message}`);
+  }
+
+  moveTo(to: Vector2) {
+    this.setPlayerCommand(new MoveCommand(to));
+  }
+
+  findEntityOfType(entityType: EntityType) {
     const result = this.getCurrentLevel().entities.find(
       e => e.type === entityType
     );
@@ -80,11 +90,18 @@ export class Game {
   }
 
   enterLevel(levelIndex: number) {
+    if (levelIndex < 0 || levelIndex > this.levels.length) {
+      console.error(`level out of range: ${levelIndex}`);
+      return;
+    }
     if (this.currentLevelIndex !== -1) {
       remove(this.getCurrentLevel().entities, this.player);
     }
     this.currentLevelIndex = levelIndex;
     this.getCurrentLevel().entities.push(this.player);
+    this.addEvent(
+      `${this.player.type.noun} is on level ${this.currentLevelIndex + 1}`
+    );
   }
 
   isWaitingForCommand(): boolean {
@@ -129,7 +146,7 @@ export class Game {
           .add(new Vector2(direction.x, direction.y).setLength(maxDistance));
   }
 
-  tick(): void {
+  tick(): string[] {
     if (this.isWaitingForCommand()) {
       throw new Error("Waiting for command");
     }
@@ -155,6 +172,13 @@ export class Game {
       }
     }
     this.tickCount++;
+    const events = this.eventBuffer;
+    this.eventBuffer = [];
+    return events;
+  }
+
+  public addEvent(message: string) {
+    this.eventBuffer.push(message);
   }
 
   public randomPointInMap() {

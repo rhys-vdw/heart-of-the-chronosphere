@@ -1,0 +1,19 @@
+.container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+}
+
+.game {
+  position: relative;
+  flex: 5 0 0;
+}
+
+.log {
+  composes: box from "./shared.css";
+  flex: 2 0 0;
+  margin: 1em 1em 1em 0;
+  max-width: 25em;
+  min-width: 15em;
+}
