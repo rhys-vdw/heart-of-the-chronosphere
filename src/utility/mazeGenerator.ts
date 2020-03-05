@@ -29,7 +29,7 @@ export interface Spawn {
 
 export interface Maze {
   /** List of rings of rooms, from innermost to outermost */
-  readonly rooms: ReadonlyArray<ReadonlyArray<Readonly<Room>>>;
+  readonly rings: ReadonlyArray<ReadonlyArray<Readonly<Room>>>;
   readonly radius: number;
   readonly spawns: readonly Spawn[];
 }
@@ -42,24 +42,24 @@ export function generateMaze({
 }: MazeOptions): Maze {
   const maze = {
     radius,
-    rooms: [] as Room[][],
+    rings: [] as Room[][],
     spawns: [] as Spawn[]
   };
 
   if (ringCount < 1) throw new TypeError(`ringCount === ${ringCount}`);
 
-  maze.rooms[0] = [createRoom(0)];
+  maze.rings[0] = [createRoom(0)];
 
   for (let i = 1; i < ringCount; i++) {
     const ringRadius = (i + 1) * radius * (1 / ringCount);
     const circumference = toCircumference(ringRadius);
     const maxRoomCount = Math.floor(circumference / minRoomWidth);
-    maze.rooms.push(
+    maze.rings.push(
       times(nextPowerOfTwo(maxRoomCount), () => createRoom(blockChance))
     );
   }
 
-  const roomCount = sumBy(maze.rooms, ring => ring.length);
+  const roomCount = sumBy(maze.rings, ring => ring.length);
   if (roomCount < 2) {
     throw new Error(`roomCount < 2: ${roomCount}`);
   }
@@ -118,21 +118,21 @@ export function generateSphereOptions({
   });
 }
 
-export const getRingDepth = ({ radius, rooms }: Maze) =>
+export const getRingDepth = ({ radius, rings: rooms }: Maze) =>
   radius * (1 / rooms.length);
 
 export const forEachRoom = (
   maze: Maze,
   cb: (room: Room, ringIndex: number, roomIndex: number) => void
-) => maze.rooms.forEach((ring, i) => ring.forEach((room, j) => cb(room, i, j)));
+) => maze.rings.forEach((ring, i) => ring.forEach((room, j) => cb(room, i, j)));
 
 export const getRoomCoordinate = (
   maze: Maze,
   index: number
 ): [number, number] => {
   let roomCount = 0;
-  for (let ringIndex = 0; ringIndex < maze.rooms.length; ringIndex++) {
-    const ringRoomCount = maze.rooms[ringIndex].length;
+  for (let ringIndex = 0; ringIndex < maze.rings.length; ringIndex++) {
+    const ringRoomCount = maze.rings[ringIndex].length;
     if (index < roomCount + ringRoomCount) {
       return [ringIndex, index - roomCount];
     }
@@ -150,6 +150,6 @@ export const getRoomCenter = (
   const midRadius = (ringIndex + 0.5) * ringDepth;
   return new Vector2(0, midRadius).rotateAround(
     new Vector2(0, 0),
-    (Math.PI * 2 * (roomIndex + 0.5)) / maze.rooms[ringIndex].length
+    (Math.PI * 2 * (roomIndex + 0.5)) / maze.rings[ringIndex].length
   );
 };

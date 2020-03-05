@@ -15,7 +15,7 @@ export function mazeToMap(maze: Maze): Map {
     walls.push(createSegment(from.x, from.y, to.x, to.y));
   };
 
-  const { rooms } = maze;
+  const { rings } = maze;
   const ringDepth = getRingDepth(maze);
 
   const processRing = (rs: readonly Room[], i: number) => {
@@ -53,15 +53,15 @@ export function mazeToMap(maze: Maze): Map {
     });
   };
 
-  rooms.forEach(processRing);
+  rings.forEach(processRing);
   const outer = times(
-    last(rooms)!.length,
+    last(rings)!.length,
     (): Room => ({
       isInnerBlocked: true,
       isClockwiseBlocked: false
     })
   );
-  processRing(outer, rooms.length);
+  processRing(outer, rings.length);
 
   return { walls };
 }
