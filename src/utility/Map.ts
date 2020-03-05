@@ -1,5 +1,5 @@
 import { Vector2 } from "three";
-import { Maze, Room, getRingDepth } from "../utility/mazeGenerator";
+import { Maze, Tile, getRingDepth } from "../utility/mazeGenerator";
 import { createSegment, Segment } from "../vendor/2d-visibility/src/types";
 import { last, times } from "lodash";
 
@@ -18,37 +18,37 @@ export function mazeToMap(maze: Maze): Map {
   const { rings } = maze;
   const ringDepth = getRingDepth(maze);
 
-  const processRing = (rs: readonly Room[], i: number) => {
+  const processRing = (tiles: readonly Tile[], i: number) => {
     // Get ring radii.
     const innerRadius = i * ringDepth;
     const outerRadius = (i + 1) * ringDepth;
 
-    // Get the inner and router point of the first room.
-    const firstRoomInner = new Vector2(0, innerRadius);
-    const firstRoomOuter = new Vector2(0, outerRadius);
+    // Get the inner and router point of the first tile.
+    const firstTileInner = new Vector2(0, innerRadius);
+    const firstTileOuter = new Vector2(0, outerRadius);
 
-    // Calculate walls for each room.
-    const roomAngle = (Math.PI * 2) / rs.length;
-    rs.forEach((room, j) => {
-      const clockwiseAngle = j * roomAngle;
-      const counterClockwiseAngle = (j - 1) * roomAngle;
+    // Calculate walls for each tile.
+    const tileAngle = (Math.PI * 2) / tiles.length;
+    tiles.forEach((tile, j) => {
+      const clockwiseAngle = j * tileAngle;
+      const counterClockwiseAngle = (j - 1) * tileAngle;
 
-      const roomInner = firstRoomInner
+      const tileInner = firstTileInner
         .clone()
         .rotateAround(center, clockwiseAngle);
 
-      if (room.isInnerBlocked) {
-        const roomInnerStart = firstRoomInner
+      if (tile.isInnerBlocked) {
+        const tileInnerStart = firstTileInner
           .clone()
           .rotateAround(center, counterClockwiseAngle);
-        addWall(roomInnerStart, roomInner);
+        addWall(tileInnerStart, tileInner);
       }
 
-      if (room.isClockwiseBlocked) {
-        const roomOuter = firstRoomOuter
+      if (tile.isClockwiseBlocked) {
+        const tileOuter = firstTileOuter
           .clone()
           .rotateAround(center, clockwiseAngle);
-        addWall(roomInner, roomOuter);
+        addWall(tileInner, tileOuter);
       }
     });
   };
@@ -56,7 +56,7 @@ export function mazeToMap(maze: Maze): Map {
   rings.forEach(processRing);
   const outer = times(
     last(rings)!.length,
-    (): Room => ({
+    (): Tile => ({
       isInnerBlocked: true,
       isClockwiseBlocked: false
     })

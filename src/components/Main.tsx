@@ -14,7 +14,7 @@ export class Main extends Component<{}, State> {
     isPlaying: true,
     sphereOptions: {
       blockChance: 0.3,
-      minRoomWidth: 30,
+      minTileWidth: 30,
       minRingDepth: 20,
       radius: 300,
       capHeight: 12,

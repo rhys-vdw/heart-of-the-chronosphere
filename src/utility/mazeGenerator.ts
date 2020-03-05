@@ -7,15 +7,15 @@ export interface MazeOptions {
   readonly blockChance: number;
   readonly radius: number;
   readonly ringCount: number;
-  readonly minRoomWidth: number;
+  readonly minTileWidth: number;
 }
 
-export interface Room {
+export interface Tile {
   isInnerBlocked: boolean;
   isClockwiseBlocked: boolean;
 }
 
-function createRoom(blockChance: number): Room {
+function createTile(blockChance: number): Tile {
   return {
     isInnerBlocked: Math.random() <= blockChance,
     isClockwiseBlocked: Math.random() <= blockChance
@@ -28,8 +28,8 @@ export interface Spawn {
 }
 
 export interface Maze {
-  /** List of rings of rooms, from innermost to outermost */
-  readonly rings: ReadonlyArray<ReadonlyArray<Readonly<Room>>>;
+  /** List of rings of tiles, from innermost to outermost */
+  readonly rings: ReadonlyArray<ReadonlyArray<Readonly<Tile>>>;
   readonly radius: number;
   readonly spawns: readonly Spawn[];
 }
@@ -38,37 +38,37 @@ export function generateMaze({
   blockChance,
   radius,
   ringCount,
-  minRoomWidth
+  minTileWidth
 }: MazeOptions): Maze {
   const maze = {
     radius,
-    rings: [] as Room[][],
+    rings: [] as Tile[][],
     spawns: [] as Spawn[]
   };
 
   if (ringCount < 1) throw new TypeError(`ringCount === ${ringCount}`);
 
-  maze.rings[0] = [createRoom(0)];
+  maze.rings[0] = [createTile(0)];
 
   for (let i = 1; i < ringCount; i++) {
     const ringRadius = (i + 1) * radius * (1 / ringCount);
     const circumference = toCircumference(ringRadius);
-    const maxRoomCount = Math.floor(circumference / minRoomWidth);
+    const maxTileCount = Math.floor(circumference / minTileWidth);
     maze.rings.push(
-      times(nextPowerOfTwo(maxRoomCount), () => createRoom(blockChance))
+      times(nextPowerOfTwo(maxTileCount), () => createTile(blockChance))
     );
   }
 
-  const roomCount = sumBy(maze.rings, ring => ring.length);
-  if (roomCount < 2) {
-    throw new Error(`roomCount < 2: ${roomCount}`);
+  const tileCount = sumBy(maze.rings, ring => ring.length);
+  if (tileCount < 2) {
+    throw new Error(`tileCount < 2: ${tileCount}`);
   }
-  const roomIndexes = range(roomCount);
-  const [downIndex, upIndex] = sampleSize(roomIndexes, 2);
+  const tileIndexes = range(tileCount);
+  const [downIndex, upIndex] = sampleSize(tileIndexes, 2);
 
   function spawnAtIndex(index: number, type: EntityType) {
-    const [i, j] = getRoomCoordinate(maze, index);
-    const position = getRoomCenter(maze, i, j);
+    const [i, j] = getTileCoordinate(maze, index);
+    const position = getTileCenter(maze, i, j);
     maze.spawns.push({ position, type });
   }
 
@@ -92,7 +92,7 @@ export interface SphereOptions {
   readonly radius: number;
   readonly sliceCount: number;
   readonly minRingDepth: number;
-  readonly minRoomWidth: number;
+  readonly minTileWidth: number;
 }
 
 export function generateSphereOptions({
@@ -101,7 +101,7 @@ export function generateSphereOptions({
   sliceCount,
   blockChance,
   minRingDepth,
-  minRoomWidth
+  minTileWidth
 }: SphereOptions): MazeOptions[] {
   const totalSliceHeight = (radius - capHeight) * 2;
   const sliceHeight = totalSliceHeight / sliceCount;
@@ -113,43 +113,38 @@ export function generateSphereOptions({
       radius: b,
       blockChance,
       ringCount: Math.max(1, Math.floor(b / minRingDepth)),
-      minRoomWidth
+      minTileWidth
     };
   });
 }
 
-export const getRingDepth = ({ radius, rings: rooms }: Maze) =>
-  radius * (1 / rooms.length);
+export const getRingDepth = ({ radius, rings }: Maze) =>
+  radius * (1 / rings.length);
 
-export const forEachRoom = (
-  maze: Maze,
-  cb: (room: Room, ringIndex: number, roomIndex: number) => void
-) => maze.rings.forEach((ring, i) => ring.forEach((room, j) => cb(room, i, j)));
-
-export const getRoomCoordinate = (
+export const getTileCoordinate = (
   maze: Maze,
   index: number
 ): [number, number] => {
-  let roomCount = 0;
+  let tileCount = 0;
   for (let ringIndex = 0; ringIndex < maze.rings.length; ringIndex++) {
-    const ringRoomCount = maze.rings[ringIndex].length;
-    if (index < roomCount + ringRoomCount) {
-      return [ringIndex, index - roomCount];
+    const ringTileCount = maze.rings[ringIndex].length;
+    if (index < tileCount + ringTileCount) {
+      return [ringIndex, index - tileCount];
     }
-    roomCount += ringRoomCount;
+    tileCount += ringTileCount;
   }
   throw new RangeError(`${index} out of range`);
 };
 
-export const getRoomCenter = (
+export const getTileCenter = (
   maze: Maze,
   ringIndex: number,
-  roomIndex: number
+  tileIndex: number
 ): Vector2 => {
   const ringDepth = getRingDepth(maze);
   const midRadius = (ringIndex + 0.5) * ringDepth;
   return new Vector2(0, midRadius).rotateAround(
     new Vector2(0, 0),
-    (Math.PI * 2 * (roomIndex + 0.5)) / maze.rings[ringIndex].length
+    (Math.PI * 2 * (tileIndex + 0.5)) / maze.rings[ringIndex].length
   );
 };
