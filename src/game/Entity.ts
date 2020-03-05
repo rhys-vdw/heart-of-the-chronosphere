@@ -21,6 +21,7 @@ export interface EntityType {
   readonly scale: number;
   readonly inititalStats: Readonly<Stats> | null;
   readonly controllerName: ControllerName;
+  readonly getUseCommand: (() => Command) | null;
 }
 
 export enum AppearanceType {

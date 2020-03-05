@@ -32,7 +32,7 @@ export class Game {
     });
     this.player = createEntity("human");
     this.enterLevel(0);
-    times(10, () => this.levels[0].entities.push(createEntity("orc")));
+    // times(10, () => this.levels[0].entities.push(createEntity("orc")));
   }
 
   regenerateMaze_TEMP(mazeOptions: readonly MazeOptions[]) {

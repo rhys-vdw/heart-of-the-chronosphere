@@ -25,12 +25,7 @@ import {
 import { Command, MoveCommand, TakeStairsCommand } from "../game/Command";
 import { AppearanceType, Entity } from "../game/Entity";
 import { Game } from "../game/Game";
-import {
-  forEachRoom,
-  generateSphereOptions,
-  getRoomCenter,
-  SphereOptions
-} from "../utility/mazeGenerator";
+import { generateSphereOptions, SphereOptions } from "../utility/mazeGenerator";
 import { getMousePosition } from "../utility/mouse";
 import { vec3to2 } from "../utility/threeJsUtility";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
@@ -40,9 +35,12 @@ import * as styles from "./GameView.css";
 
 // -- Heights --
 
-const visionZ = 0;
-const wallZ = 1;
-const entityZ = 3;
+const enum Height {
+  Vision = 0,
+  Wall = 1,
+  Entity = 3,
+  Interactive = 4
+}
 
 // -- layers --
 
@@ -62,6 +60,11 @@ const viewMaterial = new MeshBasicMaterial({
   transparent: true
 });
 const horizontalPlane = new Plane(new Vector3(0, 0, 1), 0);
+const interactMaterial = new MeshBasicMaterial({
+  color: 0xff00ff,
+  opacity: 0.1,
+  transparent: true
+});
 
 const lineMaterialByColor = new Map<number, LineBasicMaterial>();
 function getLineMaterial(color: number) {
@@ -79,8 +82,8 @@ const circleCurve = new EllipseCurve(
   0,
   0,
   // x, y radius.
-  1,
-  1,
+  0.5,
+  0.5,
   // Full circle.
   0,
   2 * Math.PI,
@@ -94,26 +97,34 @@ const ringGeometry = new BufferGeometry().setFromPoints(
 const stairsGeometry = new BufferGeometry().setFromPoints(
   circleCurve.getPoints(3)
 );
-const squareGeometry = new BufferGeometry().setFromPoints([
+const squarePoints = [
   new Vector3(-0.5, 0.5, 0),
   new Vector3(0.5, 0.5, 0),
   new Vector3(0.5, -0.5, 0),
   new Vector3(-0.5, -0.5, 0),
   new Vector3(-0.5, 0.5, 0)
-]);
+];
+const squareLineGeometry = new BufferGeometry().setFromPoints(squarePoints);
+// TODO: Could use `PlaneGeometry` for this
+const squareGeometry = new BufferGeometry().setFromPoints(squarePoints);
+squareGeometry.setIndex(
+  new BufferAttribute(new Uint32Array([0, 3, 2, 0, 2, 1]), 1)
+);
 
 // -- User data --
 
 interface ViewUserData {
-  entity: Entity | null;
+  entity: Entity;
 }
 
 function setUserData(object: Object3D, userData: ViewUserData) {
+  console.log("setting user data", object);
   object.userData = userData;
 }
 
 function getUserData(object: Object3D): ViewUserData | null {
-  return object.userData.hasOwnProperty("feature")
+  const key: keyof ViewUserData = "entity";
+  return object.userData.hasOwnProperty(key)
     ? (object.userData as ViewUserData)
     : null;
 }
@@ -121,6 +132,7 @@ function getUserData(object: Object3D): ViewUserData | null {
 function expectUserData(object: Object3D): ViewUserData {
   const userData = getUserData(object);
   if (userData === null) {
+    console.error(object);
     throw new Error("Expected user data");
   }
   return userData;
@@ -132,22 +144,19 @@ function createStairs(isStairsUp: boolean) {
   const stairs = new Object3D();
   const material = getLineMaterial(0xffffff);
 
-  const square = new Line(squareGeometry, material);
-  square.scale.set(2.5, 2.5, 1);
-  square.layers.set(Layer.Interactive);
+  const square = new Line(squareLineGeometry, material);
   stairs.attach(square);
 
   const arrow = new Line(stairsGeometry, material);
-  arrow.layers.set(Layer.Interactive);
+  arrow.scale.set(0.8, 0.8, 1);
   if (isStairsUp) {
-    arrow.translateY(-0.4);
+    arrow.translateY(-0.1);
     arrow.rotateZ((Math.PI * 7) / 6);
   } else {
-    arrow.translateY(0.4);
+    arrow.translateY(0.1);
     arrow.rotateZ(Math.PI / 6);
   }
-
-  stairs.add(arrow);
+  stairs.attach(arrow);
 
   return stairs;
 }
@@ -209,7 +218,7 @@ export class GameView extends Component<Props> {
       new BufferGeometry(),
       wallMaterial
     );
-    this.wallLineSegments.position.set(0, 0, wallZ);
+    this.wallLineSegments.position.set(0, 0, Height.Wall);
     this.wallLineSegments.layers.set(Layer.Environment);
     this.scene.add(this.wallLineSegments);
 
@@ -233,7 +242,7 @@ export class GameView extends Component<Props> {
 
     this.viewMesh = new Mesh(new Geometry(), viewMaterial);
     this.viewMesh.layers.set(Layer.Vision);
-    this.viewMesh.position.set(0, 0, visionZ);
+    this.viewMesh.position.set(0, 0, Height.Vision);
     this.viewMesh.frustumCulled = false;
     this.scene.add(this.viewMesh);
 
@@ -364,12 +373,11 @@ export class GameView extends Component<Props> {
     const object = this.raycastInteractive(event);
     let command: Command | null = null;
     if (object !== null) {
-      const userData = getUserData(object);
-      if (userData === null) {
-        console.error("No user data for object", object);
-        return;
+      const userData = expectUserData(object);
+      const { entity } = userData;
+      if (entity.type.getUseCommand !== null) {
+        command = entity.type.getUseCommand();
       }
-      console.error("Skipping object", userData);
     } else {
       const target = this.raycastWorldPosition(event);
       const to = this.game.getMaximumMoveTowardsPoint(
@@ -490,14 +498,20 @@ export class GameView extends Component<Props> {
             return;
         }
 
+        const detector = new Mesh(squareGeometry, interactMaterial);
+        detector.layers.set(Layer.Interactive);
+        obj.attach(detector);
+
+        const userData = { entity };
+        setUserData(detector, userData);
+        setUserData(obj, userData);
+
         obj.scale.set(entity.type.scale, entity.type.scale, 1);
-        obj.layers.set(Layer.Interactive);
-        setUserData(obj, { entity });
         this.scene.add(obj);
         this.viewByEntity.set(entity, obj);
         this.entityViews.push(obj);
       }
-      obj.position.set(entity.position.x, entity.position.y, entityZ);
+      obj.position.set(entity.position.x, entity.position.y, Height.Entity);
       isVisible.add(obj);
     });
     remove(this.entityViews, (obj, i) => {

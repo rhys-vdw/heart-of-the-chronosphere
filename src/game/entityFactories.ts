@@ -1,6 +1,7 @@
 import { EntityType, Entity, AppearanceType } from "./Entity";
 import { Vector2 } from "three";
 import { getController } from "./Ai";
+import { TakeStairsCommand } from "./Command";
 
 function fixTypes<T extends Record<string, EntityType>>(
   struct: T
@@ -13,40 +14,44 @@ export const entityTypes = fixTypes({
     color: 0x5555ff,
     noun: "human",
     appearance: AppearanceType.Ring,
-    scale: 5,
+    scale: 10,
     inititalStats: {
       moveSpeed: 5
     },
-    controllerName: "none"
+    controllerName: "none",
+    getUseCommand: null
   },
 
   orc: {
     color: 0x33ff33,
     noun: "orc",
     appearance: AppearanceType.Ring,
-    scale: 5,
+    scale: 10,
     inititalStats: {
       moveSpeed: 3
     },
-    controllerName: "randomMovement"
+    controllerName: "randomMovement",
+    getUseCommand: null
   },
 
   stairsUp: {
     color: 0xffffff,
     noun: "stairs up",
     appearance: AppearanceType.StairsUp,
-    scale: 4,
+    scale: 9,
     inititalStats: null,
-    controllerName: "none"
+    controllerName: "none",
+    getUseCommand: () => new TakeStairsCommand(true)
   },
 
   stairsDown: {
     color: 0xffffff,
     noun: "stairs down",
     appearance: AppearanceType.StairsDown,
-    scale: 4,
+    scale: 9,
     inititalStats: null,
-    controllerName: "none"
+    controllerName: "none",
+    getUseCommand: () => new TakeStairsCommand(false)
   }
 });
 

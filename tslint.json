@@ -4,6 +4,9 @@
     "no-console": [true, "warn"],
     "no-submodule-imports": false,
     "no-this-assignment": false,
-    "max-classes-per-file": false
+    "max-classes-per-file": false,
+    "no-debugger": {
+      "severity": "warning"
+    }
   }
 }
