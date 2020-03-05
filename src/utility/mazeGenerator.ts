@@ -1,7 +1,7 @@
-import { sample, sampleSize, times, sumBy, range } from "lodash";
+import { range, sampleSize, sumBy, times } from "lodash";
 import { Vector2 } from "three";
 import { EntityType } from "../game/Entity";
-import { EntityTypeName, entityTypes } from "../game/entityFactories";
+import { entityTypes } from "../game/entityFactories";
 
 export interface MazeOptions {
   readonly blockChance: number;
