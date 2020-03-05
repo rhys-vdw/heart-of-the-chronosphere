@@ -15,10 +15,10 @@ export interface Tile {
   isClockwiseBlocked: boolean;
 }
 
-function createTile(blockChance: number): Tile {
+function createTile(): Tile {
   return {
-    isInnerBlocked: Math.random() <= blockChance,
-    isClockwiseBlocked: Math.random() <= blockChance
+    isInnerBlocked: false,
+    isClockwiseBlocked: false
   };
 }
 
@@ -27,11 +27,32 @@ export interface Spawn {
   readonly position: Vector2;
 }
 
+/** List of rings of tiles, from innermost to outermost */
+export type Rings = ReadonlyArray<ReadonlyArray<Readonly<Tile>>>;
+
 export interface Maze {
-  /** List of rings of tiles, from innermost to outermost */
-  readonly rings: ReadonlyArray<ReadonlyArray<Readonly<Tile>>>;
+  readonly rings: Rings;
   readonly radius: number;
   readonly spawns: readonly Spawn[];
+}
+
+export function generateEmptyLevel(
+  radius: number,
+  ringCount: number,
+  minTileWidth: number
+) {
+  if (ringCount < 1) throw new TypeError(`ringCount === ${ringCount}`);
+
+  const rings = [[createTile()]];
+
+  for (let i = 1; i < ringCount; i++) {
+    const ringRadius = (i + 1) * radius * (1 / ringCount);
+    const circumference = toCircumference(ringRadius);
+    const maxTileCount = Math.floor(circumference / minTileWidth);
+    rings.push(times(nextPowerOfTwo(maxTileCount), () => createTile()));
+  }
+
+  return { radius, rings, spawns: [] as Spawn[] };
 }
 
 export function generateMaze({
@@ -40,26 +61,17 @@ export function generateMaze({
   ringCount,
   minTileWidth
 }: MazeOptions): Maze {
-  const maze = {
-    radius,
-    rings: [] as Tile[][],
-    spawns: [] as Spawn[]
-  };
+  const maze = generateEmptyLevel(radius, ringCount, minTileWidth);
 
-  if (ringCount < 1) throw new TypeError(`ringCount === ${ringCount}`);
+  let tileCount = 0;
+  maze.rings.forEach(ring => {
+    tileCount += ring.length;
+    ring.forEach(tile => {
+      tile.isClockwiseBlocked = Math.random() < blockChance;
+      tile.isInnerBlocked = Math.random() < blockChance;
+    });
+  });
 
-  maze.rings[0] = [createTile(0)];
-
-  for (let i = 1; i < ringCount; i++) {
-    const ringRadius = (i + 1) * radius * (1 / ringCount);
-    const circumference = toCircumference(ringRadius);
-    const maxTileCount = Math.floor(circumference / minTileWidth);
-    maze.rings.push(
-      times(nextPowerOfTwo(maxTileCount), () => createTile(blockChance))
-    );
-  }
-
-  const tileCount = sumBy(maze.rings, ring => ring.length);
   if (tileCount < 2) {
     throw new Error(`tileCount < 2: ${tileCount}`);
   }
@@ -68,7 +80,7 @@ export function generateMaze({
 
   function spawnAtIndex(index: number, type: EntityType) {
     const [i, j] = getTileCoordinate(maze, index);
-    const position = getTileCenter(maze, i, j);
+    const position = getTileCenter(maze.rings, maze.radius, i, j);
     maze.spawns.push({ position, type });
   }
 
@@ -118,7 +130,7 @@ export function generateSphereOptions({
   });
 }
 
-export const getRingDepth = ({ radius, rings }: Maze) =>
+export const getRingDepth = (rings: Rings, radius: number) =>
   radius * (1 / rings.length);
 
 export const getTileCoordinate = (
@@ -137,14 +149,15 @@ export const getTileCoordinate = (
 };
 
 export const getTileCenter = (
-  maze: Maze,
+  rings: Rings,
+  radius: number,
   ringIndex: number,
   tileIndex: number
 ): Vector2 => {
-  const ringDepth = getRingDepth(maze);
+  const ringDepth = getRingDepth(rings, radius);
   const midRadius = (ringIndex + 0.5) * ringDepth;
   return new Vector2(0, midRadius).rotateAround(
     new Vector2(0, 0),
-    (Math.PI * 2 * (tileIndex + 0.5)) / maze.rings[ringIndex].length
+    (Math.PI * 2 * (tileIndex + 0.5)) / rings[ringIndex].length
   );
 };
