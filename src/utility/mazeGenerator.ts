@@ -55,7 +55,7 @@ export function generateEmptyLevel(
   return { radius, rings, spawns: [] as Spawn[] };
 }
 
-export function generateMaze({
+export function generateRandomMaze({
   blockChance,
   radius,
   ringCount,

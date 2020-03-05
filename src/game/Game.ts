@@ -2,7 +2,11 @@ import { remove, times } from "lodash";
 import { Vector2 } from "three";
 import { Map, mazeToMap } from "../utility/Map";
 import { rayCastSegments } from "../utility/rayCast";
-import { Maze, MazeOptions, generateMaze } from "../utility/mazeGenerator";
+import {
+  Maze,
+  MazeOptions,
+  generateRandomMaze
+} from "../utility/mazeGenerator";
 import { MoveCommand, Command, CommandStatus } from "./Command";
 import { Entity, EntityType } from "./Entity";
 import { createEntity, entityTypes } from "./entityFactories";
@@ -23,7 +27,7 @@ export class Game {
 
   constructor(mazeOptions: readonly MazeOptions[]) {
     this.levels = mazeOptions.map(o => {
-      const maze = generateMaze(o);
+      const maze = generateRandomMaze(o);
       return {
         entities: maze.spawns.map(spawn =>
           createEntity(spawn.type, spawn.position)
