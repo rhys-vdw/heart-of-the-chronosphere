@@ -200,9 +200,7 @@ export class GameView extends Component<Props> {
   // -- Lifecycle --
 
   componentDidUpdate() {
-    this.game.regenerateMaze_TEMP(
-      generateSphereOptions(this.props.sphereOptions)
-    );
+    this.game = new Game(generateSphereOptions(this.props.sphereOptions));
     this.updateWallLines();
     this.updateVisibilityPolygon();
   }

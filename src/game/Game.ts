@@ -35,17 +35,6 @@ export class Game {
     // times(10, () => this.levels[0].entities.push(createEntity("orc")));
   }
 
-  regenerateMaze_TEMP(mazeOptions: readonly MazeOptions[]) {
-    this.levels = mazeOptions.map(o => {
-      const maze = generateMaze(o);
-      return {
-        entities: [],
-        maze,
-        map: mazeToMap(maze)
-      };
-    });
-  }
-
   getCurrentLevelIndex() {
     return this.currentLevelIndex;
   }
