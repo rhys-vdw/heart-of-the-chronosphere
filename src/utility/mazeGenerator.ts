@@ -1,11 +1,7 @@
-import { times, sampleSize, sample } from "lodash";
+import { sample, sampleSize, times, sumBy, range } from "lodash";
 import { Vector2 } from "three";
-
-export enum Feature {
-  None,
-  StairsUp,
-  StairsDown
-}
+import { EntityType } from "../game/Entity";
+import { EntityTypeName, entityTypes } from "../game/entityFactories";
 
 export interface MazeOptions {
   readonly blockChance: number;
@@ -17,21 +13,25 @@ export interface MazeOptions {
 export interface Room {
   isInnerBlocked: boolean;
   isClockwiseBlocked: boolean;
-  feature: Feature;
 }
 
 function createRoom(blockChance: number): Room {
   return {
     isInnerBlocked: Math.random() <= blockChance,
-    isClockwiseBlocked: Math.random() <= blockChance,
-    feature: Feature.None
+    isClockwiseBlocked: Math.random() <= blockChance
   };
+}
+
+export interface Spawn {
+  readonly type: EntityType;
+  readonly position: Vector2;
 }
 
 export interface Maze {
   /** List of rings of rooms, from innermost to outermost */
   readonly rooms: ReadonlyArray<ReadonlyArray<Readonly<Room>>>;
   readonly radius: number;
+  readonly spawns: readonly Spawn[];
 }
 
 export function generateMaze({
@@ -42,14 +42,13 @@ export function generateMaze({
 }: MazeOptions): Maze {
   const maze = {
     radius,
-    rooms: [] as Room[][]
+    rooms: [] as Room[][],
+    spawns: [] as Spawn[]
   };
 
-  if (ringCount < 1) return maze;
+  if (ringCount < 1) throw new TypeError(`ringCount === ${ringCount}`);
 
   maze.rooms[0] = [createRoom(0)];
-
-  if (ringCount === 1) return maze;
 
   for (let i = 1; i < ringCount; i++) {
     const ringRadius = (i + 1) * radius * (1 / ringCount);
@@ -60,26 +59,21 @@ export function generateMaze({
     );
   }
 
-  if (maze.rooms.length === 0) {
-    throw new Error("Maze has no rings!");
+  const roomCount = sumBy(maze.rooms, ring => ring.length);
+  if (roomCount < 2) {
+    throw new Error(`roomCount < 2: ${roomCount}`);
   }
-  const rings = [
-    sample(maze.rooms)!,
-    sample(maze.rooms.filter(rs => rs.length > 1))!
-  ];
-  let enterExit: Room[];
-  if (rings[0] === rings[1]) {
-    if (rings[0].length <= 2) {
-      console.error({ rings });
-      throw new Error("Too few rooms!");
-    }
-    enterExit = sampleSize(rings[0], 2);
-  } else {
-    enterExit = rings.map(rooms => sample(rooms)) as Room[];
+  const roomIndexes = range(roomCount);
+  const [downIndex, upIndex] = sampleSize(roomIndexes, 2);
+
+  function spawnAtIndex(index: number, type: EntityType) {
+    const [i, j] = getRoomCoordinate(maze, index);
+    const position = getRoomCenter(maze, i, j);
+    maze.spawns.push({ position, type });
   }
 
-  enterExit[0]!.feature = Feature.StairsUp;
-  enterExit[1]!.feature = Feature.StairsDown;
+  spawnAtIndex(downIndex, entityTypes.stairsDown);
+  spawnAtIndex(upIndex, entityTypes.stairsUp);
 
   return maze;
 }
@@ -131,6 +125,21 @@ export const forEachRoom = (
   maze: Maze,
   cb: (room: Room, ringIndex: number, roomIndex: number) => void
 ) => maze.rooms.forEach((ring, i) => ring.forEach((room, j) => cb(room, i, j)));
+
+export const getRoomCoordinate = (
+  maze: Maze,
+  index: number
+): [number, number] => {
+  let roomCount = 0;
+  for (let ringIndex = 0; ringIndex < maze.rooms.length; ringIndex++) {
+    const ringRoomCount = maze.rooms[ringIndex].length;
+    if (index < roomCount + ringRoomCount) {
+      return [ringIndex, index - roomCount];
+    }
+    roomCount += ringRoomCount;
+  }
+  throw new RangeError(`${index} out of range`);
+};
 
 export const getRoomCenter = (
   maze: Maze,

@@ -23,7 +23,9 @@ export class Game {
     this.levels = mazeOptions.map(o => {
       const maze = generateMaze(o);
       return {
-        entities: [],
+        entities: maze.spawns.map(spawn =>
+          createEntity(spawn.type, spawn.position)
+        ),
         maze,
         map: mazeToMap(maze)
       };

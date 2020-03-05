@@ -33,8 +33,8 @@ export const entityTypes = fixTypes({
 
   stairsUp: {
     color: 0xffffff,
-    noun: "stairs down",
-    appearance: AppearanceType.StairsDown,
+    noun: "stairs up",
+    appearance: AppearanceType.StairsUp,
     scale: 4,
     inititalStats: null,
     controllerName: "none"
@@ -53,10 +53,13 @@ export const entityTypes = fixTypes({
 export type EntityTypeName = keyof typeof entityTypes;
 
 export function createEntity(
-  typeName: EntityTypeName,
+  typeOrTypeName: EntityTypeName | EntityType,
   position = new Vector2()
 ): Entity {
-  const type = entityTypes[typeName];
+  const type =
+    typeof typeOrTypeName === "string"
+      ? entityTypes[typeOrTypeName]
+      : typeOrTypeName;
   return {
     position,
     type,

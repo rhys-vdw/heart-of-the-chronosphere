@@ -1,5 +1,5 @@
 import { Vector2 } from "three";
-import { Maze, Room, getRingDepth, Feature } from "../utility/mazeGenerator";
+import { Maze, Room, getRingDepth } from "../utility/mazeGenerator";
 import { createSegment, Segment } from "../vendor/2d-visibility/src/types";
 import { last, times } from "lodash";
 
@@ -58,8 +58,7 @@ export function mazeToMap(maze: Maze): Map {
     last(rooms)!.length,
     (): Room => ({
       isInnerBlocked: true,
-      isClockwiseBlocked: false,
-      feature: Feature.None
+      isClockwiseBlocked: false
     })
   );
   processRing(outer, rooms.length);

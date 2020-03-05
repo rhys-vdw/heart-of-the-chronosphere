@@ -26,7 +26,6 @@ import { Command, MoveCommand, TakeStairsCommand } from "../game/Command";
 import { AppearanceType, Entity } from "../game/Entity";
 import { Game } from "../game/Game";
 import {
-  Feature,
   forEachRoom,
   generateSphereOptions,
   getRoomCenter,
@@ -43,7 +42,6 @@ import * as styles from "./GameView.css";
 
 const visionZ = 0;
 const wallZ = 1;
-const featureZ = 2;
 const entityZ = 3;
 
 // -- layers --
@@ -107,7 +105,6 @@ const squareGeometry = new BufferGeometry().setFromPoints([
 // -- User data --
 
 interface ViewUserData {
-  feature: Feature;
   entity: Entity | null;
 }
 
@@ -131,18 +128,17 @@ function expectUserData(object: Object3D): ViewUserData {
 
 // -- Factories --
 
-function createStairs(isStairsUp: boolean, position: Vector2) {
+function createStairs(isStairsUp: boolean) {
   const stairs = new Object3D();
   const material = getLineMaterial(0xffffff);
 
   const square = new Line(squareGeometry, material);
-  square.scale.set(10, 10, 1);
+  square.scale.set(2.5, 2.5, 1);
   square.layers.set(Layer.Interactive);
   stairs.attach(square);
 
   const arrow = new Line(stairsGeometry, material);
   arrow.layers.set(Layer.Interactive);
-  arrow.scale.set(4, 4, 1);
   if (isStairsUp) {
     arrow.translateY(-0.4);
     arrow.rotateZ((Math.PI * 7) / 6);
@@ -150,17 +146,8 @@ function createStairs(isStairsUp: boolean, position: Vector2) {
     arrow.translateY(0.4);
     arrow.rotateZ(Math.PI / 6);
   }
+
   stairs.add(arrow);
-
-  // TODO: Add detector
-  const userData = {
-    feature: isStairsUp ? Feature.StairsUp : Feature.StairsDown,
-    entity: null
-  };
-  setUserData(square, userData);
-  setUserData(arrow, userData);
-
-  stairs.position.set(position.x, position.y, featureZ);
 
   return stairs;
 }
@@ -188,8 +175,8 @@ export class GameView extends Component<Props> {
   private wallLineSegments!: LineSegments;
   private lastTickTime: number = 0;
   private game: Game;
-  private entityViews: Line[] = [];
-  private viewByEntity: WeakMap<Entity, Line> = new WeakMap();
+  private entityViews: Object3D[] = [];
+  private viewByEntity: WeakMap<Entity, Object3D> = new WeakMap();
   private raycaster!: Raycaster;
   private visibleLevelIndex = -1;
 
@@ -225,28 +212,6 @@ export class GameView extends Component<Props> {
     this.wallLineSegments.position.set(0, 0, wallZ);
     this.wallLineSegments.layers.set(Layer.Environment);
     this.scene.add(this.wallLineSegments);
-
-    // Add the features.
-
-    const { maze } = this.game.getCurrentLevel();
-    forEachRoom(maze, (room, i, j) => {
-      if (room.feature === Feature.None) {
-        return;
-      }
-      console.log(`Found ${room.feature} at (${i}, ${j})`);
-      const midPoint = getRoomCenter(maze, i, j);
-      switch (room.feature) {
-        case Feature.StairsUp:
-          this.scene.add(createStairs(true, midPoint));
-          break;
-        case Feature.StairsDown:
-          this.scene.add(createStairs(false, midPoint));
-          break;
-        default:
-          console.error(`Unmatched map feature: ${room.feature}`);
-          break;
-      }
-    });
 
     // Create movement indicator line.
 
@@ -404,15 +369,7 @@ export class GameView extends Component<Props> {
         console.error("No user data for object", object);
         return;
       }
-      const { feature } = userData;
-      switch (feature) {
-        case Feature.StairsUp:
-          command = new TakeStairsCommand(true);
-          break;
-        case Feature.StairsDown:
-          command = new TakeStairsCommand(false);
-          break;
-      }
+      console.error("Skipping object", userData);
     } else {
       const target = this.raycastWorldPosition(event);
       const to = this.game.getMaximumMoveTowardsPoint(
@@ -518,7 +475,13 @@ export class GameView extends Component<Props> {
       if (obj === null) {
         switch (entity.type.appearance) {
           case AppearanceType.Ring:
-            obj = GameView.createRing(entity.type.scale, entity.type.color);
+            obj = GameView.createRing(entity.type.color);
+            break;
+          case AppearanceType.StairsDown:
+            obj = createStairs(false);
+            break;
+          case AppearanceType.StairsUp:
+            obj = createStairs(true);
             break;
           default:
             console.error(
@@ -527,8 +490,9 @@ export class GameView extends Component<Props> {
             return;
         }
 
+        obj.scale.set(entity.type.scale, entity.type.scale, 1);
         obj.layers.set(Layer.Interactive);
-        setUserData(obj, { feature: Feature.None, entity });
+        setUserData(obj, { entity });
         this.scene.add(obj);
         this.viewByEntity.set(entity, obj);
         this.entityViews.push(obj);
@@ -551,10 +515,7 @@ export class GameView extends Component<Props> {
     });
   }
 
-  private static createRing(radius: number, color: number) {
-    const ring = new Line(ringGeometry, getLineMaterial(color));
-    ring.scale.x = radius;
-    ring.scale.y = radius;
-    return ring;
+  private static createRing(color: number) {
+    return new Line(ringGeometry, getLineMaterial(color));
   }
 }
