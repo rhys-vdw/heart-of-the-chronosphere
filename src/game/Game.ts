@@ -48,6 +48,10 @@ export class Game {
   }
 
   ascend() {
+    if (this.currentLevelIndex === this.levels.length - 1) {
+      console.error("NYI: Exit through roof");
+      return;
+    }
     this.enterLevel(this.currentLevelIndex + 1);
   }
 
