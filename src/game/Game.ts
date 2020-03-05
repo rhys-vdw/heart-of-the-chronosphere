@@ -4,8 +4,8 @@ import { Map, mazeToMap } from "../utility/Map";
 import { rayCastSegments } from "../utility/rayCast";
 import { Maze, MazeOptions, generateMaze } from "../utility/mazeGenerator";
 import { MoveCommand, Command, CommandStatus } from "./Command";
-import { Entity } from "./Entity";
-import { createEntity } from "./entityFactories";
+import { Entity, EntityType } from "./Entity";
+import { createEntity, entityTypes } from "./entityFactories";
 
 export interface Level {
   entities: Entity[];
@@ -53,6 +53,9 @@ export class Game {
       return;
     }
     this.enterLevel(this.currentLevelIndex + 1);
+    this.player.position.copy(
+      this.findEntityOfType(entityTypes.stairsDown).position
+    );
   }
 
   descend() {
@@ -61,6 +64,19 @@ export class Game {
       return;
     }
     this.enterLevel(this.currentLevelIndex - 1);
+    this.player.position.copy(
+      this.findEntityOfType(entityTypes.stairsUp).position
+    );
+  }
+
+  private findEntityOfType(entityType: EntityType) {
+    const result = this.getCurrentLevel().entities.find(
+      e => e.type === entityType
+    );
+    if (result === undefined) {
+      throw new Error(`Could not find stairs down on level`);
+    }
+    return result;
   }
 
   enterLevel(levelIndex: number) {
