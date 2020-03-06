@@ -30,8 +30,8 @@ export function mazeToMap(maze: Maze): Map {
     // Calculate walls for each tile.
     const tileAngle = (Math.PI * 2) / tiles.length;
     tiles.forEach((tile, j) => {
-      const clockwiseAngle = j * tileAngle;
-      const counterClockwiseAngle = (j - 1) * tileAngle;
+      const clockwiseAngle = (j + 1) * tileAngle;
+      const counterClockwiseAngle = j * tileAngle;
 
       const tileInner = firstTileInner
         .clone()

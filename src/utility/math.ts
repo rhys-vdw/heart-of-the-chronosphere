@@ -7,3 +7,5 @@ export const clamp = (v: number, min: number, max: number) => {
   }
   return v;
 };
+
+export const repeat = (v: number, max: number) => ((v % max) + max) % max;

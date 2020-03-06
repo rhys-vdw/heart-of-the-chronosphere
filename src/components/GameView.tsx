@@ -24,7 +24,11 @@ import {
 } from "three";
 import { AppearanceType, Entity } from "../game/Entity";
 import { Game } from "../game/Game";
-import { generateSphereOptions, SphereOptions } from "../utility/mazeGenerator";
+import {
+  generateSphereOptions,
+  SphereOptions,
+  getTileCenter
+} from "../utility/mazeGenerator";
 import { getMousePosition } from "../utility/mouse";
 import { vec3to2 } from "../utility/threeJsUtility";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
@@ -33,6 +37,7 @@ import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
 import { GameLayout } from "./GameLayout";
 import { EventLog } from "./EventLog";
 import * as styles from "./GameView.css";
+import { NavMesh, randomWalk } from "../utility/navigation";
 
 // -- Heights --
 
@@ -191,6 +196,7 @@ export class GameView extends Component<Props, State> {
   private viewByEntity: WeakMap<Entity, Object3D> = new WeakMap();
   private raycaster!: Raycaster;
   private visibleLevelIndex = -1;
+  private navPathGeometry!: BufferGeometry;
 
   state: State = {
     events: []
@@ -230,6 +236,36 @@ export class GameView extends Component<Props, State> {
     this.wallLineSegments.position.set(0, 0, Height.Wall);
     this.wallLineSegments.layers.set(Layer.Environment);
     this.scene.add(this.wallLineSegments);
+
+    // -- TEST visualize nav mesh --
+
+    this.navPathGeometry = new BufferGeometry();
+    const navLines = new LineSegments(
+      this.navPathGeometry,
+      new LineBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.4
+      })
+    );
+    this.scene.add(navLines);
+
+    // -- TEST random walk --
+
+    // const path = randomWalk(nav, { r: 0, t: 0 }, 10);
+    // console.log(path);
+    // const pathG = new BufferGeometry();
+    // pathG.setFromPoints(
+    //   path.map(({ r, t }) => getTileCenter(maze.rings, maze.radius, r, t))
+    // );
+    // const line = new Line(
+    //   pathG,
+    //   new LineBasicMaterial({
+    //     color: 0xff0000
+    //   })
+    // );
+    // line.position.setZ(10);
+    // this.scene.add(line);
 
     // Create movement indicator line.
 
@@ -294,6 +330,7 @@ export class GameView extends Component<Props, State> {
       }
       if (this.visibleLevelIndex !== this.game.getCurrentLevelIndex()) {
         this.updateWallLines();
+        this.updateNavMesh();
       }
       this.updateEntities();
       this.updateVisibilityPolygon();
@@ -466,6 +503,31 @@ export class GameView extends Component<Props, State> {
     this.wallLineSegments.geometry.dispose();
     this.wallLineSegments.geometry = new Geometry().setFromPoints(
       createWallPoints(this.game.getCurrentLevel().map.walls)
+    );
+  }
+
+  private updateNavMesh() {
+    const { navMesh, maze } = this.game.getCurrentLevel();
+    console.log("updated nav path");
+    this.navPathGeometry.setFromPoints(
+      navMesh.byCoordinate.flatMap(nodes =>
+        nodes.flatMap(node =>
+          node.connections.flatMap(n => [
+            getTileCenter(
+              maze.rings,
+              maze.radius,
+              node.coordinate.r,
+              node.coordinate.t
+            ),
+            getTileCenter(
+              maze.rings,
+              maze.radius,
+              n.coordinate.r,
+              n.coordinate.t
+            )
+          ])
+        )
+      )
     );
   }
 

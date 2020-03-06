@@ -10,11 +10,13 @@ import {
 import { MoveCommand, Command, CommandStatus } from "./Command";
 import { Entity, EntityType } from "./Entity";
 import { createEntity, entityTypes } from "./entityFactories";
+import { NavMesh } from "../utility/navigation";
 
 export interface Level {
-  entities: Entity[];
-  map: Map;
-  maze: Maze;
+  readonly entities: Entity[];
+  readonly map: Map;
+  readonly maze: Maze;
+  readonly navMesh: NavMesh;
 }
 
 export class Game {
@@ -40,7 +42,8 @@ export class Game {
       return {
         entities,
         maze,
-        map: mazeToMap(maze)
+        map: mazeToMap(maze),
+        navMesh: new NavMesh(maze)
       };
     });
     this.player = createEntity("human");
