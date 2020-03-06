@@ -28,10 +28,17 @@ export class Game {
   constructor(mazeOptions: readonly MazeOptions[]) {
     this.levels = mazeOptions.map(o => {
       const maze = generateRandomMaze(o);
+      const entities = maze.spawns.map(spawn =>
+        createEntity(spawn.type, spawn.position)
+      );
+      const orcCount = Math.random() * 8;
+      for (let i = 0; i < orcCount; i++) {
+        entities.push(
+          createEntity(entityTypes.orc, this.randomPointInMaze(maze))
+        );
+      }
       return {
-        entities: maze.spawns.map(spawn =>
-          createEntity(spawn.type, spawn.position)
-        ),
+        entities,
         maze,
         map: mazeToMap(maze)
       };
@@ -190,6 +197,13 @@ export class Game {
 
   addEvent(message: string) {
     this.eventBuffer.push(message);
+  }
+
+  randomPointInMaze(maze: Maze) {
+    return new Vector2(0, maze.radius * Math.random()).rotateAround(
+      new Vector2(0, 0),
+      Math.random() * Math.PI * 2
+    );
   }
 
   randomPointInMap() {
