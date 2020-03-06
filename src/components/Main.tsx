@@ -11,7 +11,7 @@ interface State {
 
 export class Main extends Component<{}, State> {
   state: State = {
-    isPlaying: true,
+    isPlaying: false,
     sphereOptions: {
       blockChance: 0.3,
       minTileWidth: 30,
