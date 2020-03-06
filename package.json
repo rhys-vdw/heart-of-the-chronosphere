@@ -13,17 +13,6 @@
     "build": "webpack --mode=production",
     "start": "webpack-dev-server --mode=development --progress --config ./webpack.config.ts"
   },
-  "jest": {
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js"
-    ],
-    "transform": {
-      "^.+\\.(ts|tsx)$": "<rootDir>/preprocessor.js"
-    },
-    "testRegex": "/__tests__/.*\\.(ts|tsx|js)$"
-  },
   "devDependencies": {
     "@babel/core": "7.8.4",
     "@types/html-webpack-plugin": "3.2.2",
