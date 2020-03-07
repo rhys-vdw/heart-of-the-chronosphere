@@ -113,7 +113,7 @@ export class RangedAttackCommand implements Command {
     if (this.tickCount === steadyTickCount) {
       if (held.ammunition!.loaded === 0) {
         game.addEvent(
-          `*click* ${entity.type.noun} fails to fire ${held.type.noun}`
+          `*click* ${entity.type.noun}'s ${held.type.noun} is out of ammo`
         );
         return CommandStatus.Complete;
       }
