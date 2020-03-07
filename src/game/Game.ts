@@ -149,7 +149,10 @@ export class Game {
     const offset = point.clone().sub(from);
     const direction = offset.clone().normalize();
     // Subtract radius from max distance to stop exact at the wall.
-    const maxDistance = this.rayCastWalls(from, direction) - entity.type.scale;
+    const maxDistance = Math.max(
+      this.rayCastWalls(from, direction) - entity.type.scale,
+      0
+    );
     return maxDistance > offset.length()
       ? point
       : from
