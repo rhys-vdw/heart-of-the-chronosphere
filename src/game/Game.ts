@@ -100,7 +100,7 @@ export class Game {
   }
 
   enterLevel(levelIndex: number) {
-    if (levelIndex < 0 || levelIndex > this.levels.length) {
+    if (levelIndex < 0 || levelIndex >= this.levels.length) {
       console.error(`level out of range: ${levelIndex}`);
       return;
     }
