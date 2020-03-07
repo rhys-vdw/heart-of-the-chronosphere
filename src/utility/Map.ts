@@ -16,7 +16,7 @@ export function mazeToMap(maze: Maze): Map {
   };
 
   const { rings } = maze;
-  const ringDepth = getRingDepth(maze.rings, maze.radius);
+  const ringDepth = getRingDepth(maze.rings.length, maze.radius);
 
   const processRing = (tiles: readonly Tile[], i: number) => {
     // Get ring radii.

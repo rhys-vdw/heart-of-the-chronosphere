@@ -11,13 +11,13 @@ interface State {
 
 export class Main extends Component<{}, State> {
   state: State = {
-    isPlaying: false,
+    isPlaying: true,
     sphereOptions: {
       blockChance: 0.3,
       minTileWidth: 30,
       minRingDepth: 20,
       radius: 300,
-      capHeight: 12,
+      capHeight: 200,
       sliceCount: 10
     }
   };

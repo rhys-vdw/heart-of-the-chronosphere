@@ -1,6 +1,7 @@
-import { Maze } from "./mazeGenerator";
-import { sample } from "lodash";
+import { Maze, getTileCenter } from "./mazeGenerator";
+import { sample, isEqual } from "lodash";
 import { repeat } from "./math";
+import { Vector2 } from "three";
 
 export interface Coordinate {
   readonly r: number;
@@ -48,6 +49,7 @@ export function getChildren(maze: Maze, { r, t }: Coordinate): Coordinate[] {
 interface Node {
   coordinate: Coordinate;
   connections: Node[];
+  position: Vector2;
 }
 
 export class NavMesh {
@@ -58,7 +60,11 @@ export class NavMesh {
     maze.rings.forEach((ring, r) => {
       this.byCoordinate[r] = [];
       ring.forEach((room, t) => {
-        const node: Node = { coordinate: { r, t }, connections: [] };
+        const node: Node = {
+          coordinate: { r, t },
+          connections: [],
+          position: getTileCenter(maze.rings, maze.radius, r, t)
+        };
         this.byCoordinate[r][t] = node;
       });
       this.byCoordinate[r].forEach((node, t, ringNodes) => {
@@ -81,9 +87,69 @@ export class NavMesh {
     });
   }
 
+  findPath(from: Coordinate, to: Coordinate): Node[] | null {
+    interface SearchNode {
+      readonly node: Node;
+      readonly parent: SearchNode | null;
+      readonly g: number;
+      readonly h: number;
+    }
+
+    const fromNode = this.getNodeAtCoord(from);
+    const toNode = this.getNodeAtCoord(to);
+    const closedList = new Set<Node>();
+    const openList: SearchNode[] = [
+      {
+        node: this.getNodeAtCoord(from),
+        parent: null,
+        g: 0,
+        h: fromNode.position.distanceTo(toNode.position)
+      }
+    ];
+
+    while (openList.length > 0) {
+      // Get cheapest node.
+      const searchNode = openList.shift()!;
+
+      // Backtrace if this is the result.
+      if (searchNode.node.coordinate === toNode.coordinate) {
+        const path: Node[] = [];
+        let s: SearchNode | null = searchNode;
+        while (s !== null) {
+          path.push(s.node);
+          s = s.parent;
+        }
+        path.reverse();
+        return path;
+      }
+
+      // Expand this node.
+      searchNode.node.connections.forEach(node => {
+        if (!closedList.has(node)) {
+          const g =
+            searchNode.g + searchNode.node.position.distanceTo(node.position);
+          const h = node.position.distanceTo(toNode.position);
+          const expandedSearchNode: SearchNode = {
+            node,
+            parent: searchNode,
+            g,
+            h
+          };
+          const i = openList.findIndex(sn => sn.g + sn.h > g + h);
+          openList.splice(i, 0, expandedSearchNode);
+          closedList.add(node);
+        }
+      });
+    }
+
+    // Nothing found.
+    return null;
+  }
+
   getNodeAtCoord({ r, t }: Coordinate): Readonly<Node> {
     return this.getNode(r, t);
   }
+
   getNode(r: number, t: number): Readonly<Node> {
     const nodeRing = this.byCoordinate[r];
     return nodeRing[repeat(t, nodeRing.length)];

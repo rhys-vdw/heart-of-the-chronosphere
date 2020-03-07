@@ -1,4 +1,4 @@
-import { range, sampleSize, sumBy, times } from "lodash";
+import { range, sampleSize, times } from "lodash";
 import { Vector2 } from "three";
 import { EntityType } from "../game/Entity";
 import { entityTypes } from "../game/entityFactories";
@@ -130,8 +130,8 @@ export function generateSphereOptions({
   });
 }
 
-export const getRingDepth = (rings: Rings, radius: number) =>
-  radius * (1 / rings.length);
+export const getRingDepth = (ringCount: number, radius: number) =>
+  radius * (1 / ringCount);
 
 export const getTileCoordinate = (
   maze: Maze,
@@ -154,7 +154,7 @@ export const getTileCenter = (
   ringIndex: number,
   tileIndex: number
 ): Vector2 => {
-  const ringDepth = getRingDepth(rings, radius);
+  const ringDepth = getRingDepth(rings.length, radius);
   const midRadius = (ringIndex + 0.5) * ringDepth;
   return new Vector2(0, midRadius).rotateAround(
     new Vector2(0, 0),
