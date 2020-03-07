@@ -115,6 +115,20 @@ export class RangedAttackCommand implements Command {
       }
       held.ammunition!.loaded--;
       game.addEvent(`${entity.type.noun} fires ${held.type.noun}!`);
+      const rayCastHit = game.rayCastEntities(
+        entity,
+        this.target
+          .clone()
+          .sub(entity.position)
+          .normalize()
+      );
+      if (rayCastHit === null) {
+        game.addEvent(`The bullet disappears`);
+      } else if (rayCastHit.entity === null) {
+        game.addEvent(`The bullet misses`);
+      } else {
+        game.addEvent(`The bullet hits ${rayCastHit.entity!.type.noun}`);
+      }
     }
     return this.tickCount > steadyTickCount + recoverTickCount
       ? CommandStatus.Complete

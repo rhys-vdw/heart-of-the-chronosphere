@@ -6,7 +6,7 @@ import {
   Maze,
   MazeOptions
 } from "../utility/mazeGenerator";
-import { rayCastSegments } from "../utility/rayCast";
+import { rayCastSegments, rayCastSegmentsDetailed } from "../utility/rayCast";
 import {
   Command,
   CommandStatus,
@@ -15,6 +15,7 @@ import {
 } from "./Command";
 import { Entity, EntityType } from "./Entity";
 import { createEntity, entityTypes } from "./entityFactories";
+import { Segment, createSegment } from "../vendor/2d-visibility/src/types";
 
 export interface Level {
   readonly entities: Entity[];
@@ -156,11 +157,39 @@ export class Game {
   }
 
   rayCastWalls(from: Vector2, direction: Vector2): number {
-    return rayCastSegments(
-      from,
-      direction,
-      this.levels[this.currentLevelIndex].map.walls
+    return rayCastSegments(from, direction, this.getCurrentLevel().map.walls);
+  }
+
+  rayCastEntities(from: Entity, direction: Vector2) {
+    const level = this.getCurrentLevel();
+    const entitySegments = level.entities.reduce((acc, e) => {
+      if (e !== from && e.stats !== null) {
+        const offset = e.position.clone().sub(from.position);
+        const perpendicular = new Vector2(offset.y, -offset.x)
+          .normalize()
+          .multiplyScalar(e.type.scale);
+        const p1 = e.position.clone().sub(perpendicular);
+        const p2 = e.position.clone().add(perpendicular);
+        console.log(p1, p2);
+        acc.push([e, createSegment(p1.x, p1.y, p2.x, p2.y)]);
+      }
+      return acc;
+    }, [] as [Entity, Segment][]);
+    const result = rayCastSegmentsDetailed(from.position, direction, [
+      ...level.map.walls,
+      ...entitySegments.map(es => es[1])
+    ]);
+    if (result === null) {
+      return null;
+    }
+    const hitEntitySegment = entitySegments.find(
+      es => es[1] === result.segment
     );
+    return {
+      ...result,
+      entity: hitEntitySegment === undefined ? null : hitEntitySegment[0],
+      entitySegments
+    };
   }
 
   getMaximumMoveTowardsPoint(entity: Entity, point: Vector2): Vector2 {

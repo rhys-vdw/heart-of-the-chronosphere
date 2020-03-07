@@ -26,6 +26,30 @@ export function rayCastSegment(
   return null;
 }
 
+interface RayCastResult {
+  distance: number;
+  segment: Segment | null;
+}
+
+export function rayCastSegmentsDetailed(
+  origin: Vector2,
+  direction: Vector2,
+  segments: readonly Segment[]
+): RayCastResult {
+  let distance = Infinity;
+  let segment: null | Segment = null;
+  for (const s of segments) {
+    const v1 = new Vector2(s.p1.x, s.p1.y);
+    const v2 = new Vector2(s.p2.x, s.p2.y);
+    const d = rayCastSegment(origin, direction, v1, v2);
+    if (d !== null && d < distance) {
+      distance = d;
+      segment = s;
+    }
+  }
+  return { distance, segment };
+}
+
 export function rayCastSegments(
   origin: Vector2,
   direction: Vector2,
