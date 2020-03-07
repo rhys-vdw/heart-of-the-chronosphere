@@ -245,9 +245,11 @@ export class GameView extends Component<Props, State> {
       new LineBasicMaterial({
         color: 0xffffff,
         transparent: true,
-        opacity: 0.1
+        opacity: 0.1,
+        visible: false
       })
     );
+    navLines.frustumCulled = false;
     this.scene.add(navLines);
 
     // -- TEST pathfinding --
