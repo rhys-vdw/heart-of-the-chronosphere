@@ -30,7 +30,7 @@ export function rayCastSegments(
   origin: Vector2,
   direction: Vector2,
   segments: readonly Segment[]
-): number | null {
+): number {
   let closest = Infinity;
   for (const segment of segments) {
     const v1 = new Vector2(segment.p1.x, segment.p1.y);
@@ -40,5 +40,5 @@ export function rayCastSegments(
       closest = d;
     }
   }
-  return closest === Infinity ? null : closest;
+  return closest;
 }

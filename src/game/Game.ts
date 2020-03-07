@@ -136,18 +136,20 @@ export class Game {
     commandState.currentCommandTickCount = 0;
   }
 
-  getMaximumMoveTowardsPoint(entity: Entity, point: Vector2): Vector2 {
-    const from = entity.position;
-    const offset = point.clone().sub(from);
-    const direction = offset.clone().normalize();
-    let maxDistance = rayCastSegments(
+  rayCastWalls(from: Vector2, direction: Vector2): number {
+    return rayCastSegments(
       from,
       direction,
       this.levels[this.currentLevelIndex].map.walls
     );
+  }
+
+  getMaximumMoveTowardsPoint(entity: Entity, point: Vector2): Vector2 {
+    const from = entity.position;
+    const offset = point.clone().sub(from);
+    const direction = offset.clone().normalize();
     // Subtract radius from max distance to stop exact at the wall.
-    maxDistance =
-      maxDistance === null ? Infinity : maxDistance - entity.type.scale;
+    const maxDistance = this.rayCastWalls(from, direction) - entity.type.scale;
     return maxDistance > offset.length()
       ? point
       : from
