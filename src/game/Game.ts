@@ -158,6 +158,9 @@ export class Game {
 
   startGame() {
     this.enterLevel(0);
+    this.player.position.copy(
+      this.findEntityOfType(entityTypes.stairsDown).position
+    );
     return this.flushEvents();
   }
 
