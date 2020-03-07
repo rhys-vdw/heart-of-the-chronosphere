@@ -104,7 +104,11 @@ export class RangedAttackCommand implements Command {
     if (held.type.rangedWeapon === undefined) {
       throw new TypeError(`${held.type.noun} is not ranged`);
     }
-    const { steadyTickCount, recoverTickCount } = held.type.rangedWeapon;
+    const {
+      steadyTickCount,
+      recoverTickCount,
+      damage
+    } = held.type.rangedWeapon;
     this.tickCount++;
     if (this.tickCount === steadyTickCount) {
       if (held.ammunition!.loaded === 0) {
@@ -115,19 +119,32 @@ export class RangedAttackCommand implements Command {
       }
       held.ammunition!.loaded--;
       game.addEvent(`${entity.type.noun} fires ${held.type.noun}!`);
-      const rayCastHit = game.rayCastEntities(
-        entity,
-        this.target
-          .clone()
-          .sub(entity.position)
-          .normalize()
-      );
+      const direction = this.target
+        .clone()
+        .sub(entity.position)
+        .normalize();
+      const rayCastHit = game.rayCastEntities(entity, direction);
       if (rayCastHit === null) {
         game.addEvent(`The bullet disappears`);
-      } else if (rayCastHit.entity === null) {
-        game.addEvent(`The bullet misses`);
       } else {
-        game.addEvent(`The bullet hits ${rayCastHit.entity!.type.noun}`);
+        const hitPoint = entity.position
+          .clone()
+          .add(direction.clone().multiplyScalar(rayCastHit?.distance));
+        const trace = {
+          from: entity.position,
+          to: hitPoint,
+          isHit: rayCastHit.entity !== null
+        };
+        if (rayCastHit.entity === null) {
+          game.addEvent({ message: `The bullet misses`, traces: [trace] });
+        } else {
+          rayCastHit.entity.stats!.health -= damage;
+          game.addEvent({
+            message: `The bullet hits ${rayCastHit.entity!.type.noun}`,
+            traces: [trace]
+          });
+          game.killEntity(rayCastHit.entity);
+        }
       }
     }
     return this.tickCount > steadyTickCount + recoverTickCount

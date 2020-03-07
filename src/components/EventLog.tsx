@@ -1,8 +1,9 @@
 import { Component, h, createRef } from "preact";
 import * as styles from "./EventLog.css";
+import { GameEvent } from "../game/Game";
 
 interface Props {
-  readonly events: readonly string[];
+  readonly events: readonly GameEvent[];
 }
 
 interface State {
@@ -18,7 +19,6 @@ export class EventLog extends Component<Props, State> {
 
   private handleScroll = (event: UIEvent) => {
     const element = this.scrollableElementRef.current!;
-    console.log("top", element.scrollTop, "height", element.scrollHeight);
     this.setState({
       autoScroll:
         element.scrollHeight - element.clientHeight <= element.scrollTop + 1
@@ -26,7 +26,6 @@ export class EventLog extends Component<Props, State> {
   };
 
   componentDidUpdate() {
-    console.log("componentDidUpdate", this.state.autoScroll);
     if (this.state.autoScroll) {
       const element = this.scrollableElementRef.current!;
       element.scrollTop = element.scrollHeight - element.clientHeight;
@@ -42,7 +41,7 @@ export class EventLog extends Component<Props, State> {
       >
         <ol className={styles.list}>
           {this.props.events.map(e => (
-            <li>{e}</li>
+            <li>{e.message}</li>
           ))}
         </ol>
       </div>

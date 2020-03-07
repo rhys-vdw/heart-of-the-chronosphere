@@ -1,4 +1,4 @@
-import { remove } from "lodash";
+import { remove, MemoVoidDictionaryIterator, pull } from "lodash";
 import { Vector2 } from "three";
 import { Map, mazeToMap } from "../utility/Map";
 import {
@@ -23,13 +23,22 @@ export interface Level {
   readonly maze: Maze;
 }
 
+export interface GameEvent {
+  readonly message: string;
+  readonly traces: {
+    readonly from: Vector2;
+    readonly to: Vector2;
+    readonly isHit: boolean;
+  }[];
+}
+
 export class Game {
   static readonly useRange = 13;
   levels: Level[];
   currentLevelIndex: number = -1;
   player: Entity;
   tickCount: number = 0;
-  eventBuffer: string[] = [];
+  eventBuffer: GameEvent[] = [];
 
   constructor(mazeOptions: readonly MazeOptions[]) {
     this.levels = mazeOptions.map(o => {
@@ -100,12 +109,13 @@ export class Game {
     this.setPlayerCommand(useTarget.type.getUseCommand!());
   }
 
-  private logEvent(message: string) {
-    console.log(`EVENT: ${message}`);
-  }
-
   moveTo(to: Vector2) {
     this.setPlayerCommand(new MoveCommand(to));
+  }
+
+  killEntity(entity: Entity) {
+    this.addEvent({ message: `${entity.type.noun} is killed!`, traces: [] });
+    pull(this.getCurrentLevel().entities, entity);
   }
 
   findEntityOfType(entityType: EntityType) {
@@ -216,7 +226,7 @@ export class Game {
     return this.flushEvents();
   }
 
-  tick(): string[] {
+  tick(): GameEvent[] {
     if (this.isWaitingForCommand()) {
       throw new Error("Waiting for command");
     }
@@ -245,14 +255,16 @@ export class Game {
     return this.flushEvents();
   }
 
-  private flushEvents(): string[] {
+  private flushEvents(): GameEvent[] {
     const events = this.eventBuffer;
     this.eventBuffer = [];
     return events;
   }
 
-  addEvent(message: string) {
-    this.eventBuffer.push(message);
+  addEvent(event: string | GameEvent) {
+    this.eventBuffer.push(
+      typeof event === "string" ? { message: event, traces: [] } : event
+    );
   }
 
   randomPointInMaze(maze: Maze) {

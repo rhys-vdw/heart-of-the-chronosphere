@@ -20,8 +20,8 @@ const sixShooter: EntityType = {
   rangedWeapon: {
     accuracy: 7,
     damage: 7,
-    steadyTickCount: 5,
-    recoverTickCount: 10,
+    steadyTickCount: 3,
+    recoverTickCount: 3,
     ammoCapacity: 6,
     reloadCount: 1,
     reloadTickCount: 20

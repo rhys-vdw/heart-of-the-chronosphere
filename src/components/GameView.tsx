@@ -20,10 +20,11 @@ import {
   Scene,
   Vector2,
   Vector3,
-  WebGLRenderer
+  WebGLRenderer,
+  Material
 } from "three";
 import { AppearanceType, Entity } from "../game/Entity";
-import { Game } from "../game/Game";
+import { Game, GameEvent } from "../game/Game";
 import {
   generateSphereOptions,
   SphereOptions,
@@ -42,10 +43,11 @@ import { NavMesh, randomWalk } from "../utility/navigation";
 // -- Heights --
 
 const enum Height {
-  Vision = 0,
-  Wall = 1,
-  Entity = 3,
-  Interactive = 4
+  Vision,
+  Wall,
+  Entity,
+  Interactive,
+  BulletTrace
 }
 
 // -- layers --
@@ -179,7 +181,7 @@ interface Props {
 }
 
 interface State {
-  readonly events: readonly string[];
+  readonly events: readonly GameEvent[];
 }
 
 export class GameView extends Component<Props, State> {
@@ -197,6 +199,7 @@ export class GameView extends Component<Props, State> {
   private raycaster!: Raycaster;
   private visibleLevelIndex = -1;
   private navPathGeometry!: BufferGeometry;
+  private bulletTraces: Line[] = [];
 
   state: State = {
     events: []
@@ -338,6 +341,7 @@ export class GameView extends Component<Props, State> {
       this.updateEntities();
       this.updateVisibilityPolygon();
       this.updateCursor(getMousePosition());
+      this.updateBulletTraces();
       this.camera.position.set(
         this.game.player.position.x,
         this.game.player.position.y,
@@ -426,6 +430,21 @@ export class GameView extends Component<Props, State> {
     }
   };
 
+  private updateBulletTraces() {
+    const traceFadeSpeed = 0.05;
+    remove(this.bulletTraces, trace => {
+      const material = trace.material as Material;
+      material.opacity -= traceFadeSpeed;
+      if (material.opacity <= 0) {
+        material.dispose();
+        trace.geometry.dispose();
+        this.scene.remove(trace);
+        return true;
+      }
+      return false;
+    });
+  }
+
   private handleMouseDown = (event: MouseEvent) => {
     if (!this.game.isWaitingForCommand()) return;
     const object = this.raycastInteractive(event);
@@ -436,7 +455,10 @@ export class GameView extends Component<Props, State> {
         if (this.game.isInReachOfPlayer(entity)) {
           this.game.use(entity);
         } else {
-          this.addEvent(`${entity.type.noun} is out of range`);
+          this.addEvent({
+            message: `${entity.type.noun} is out of range`,
+            traces: []
+          });
         }
       } else if (this.game.canFireAt(this.game.player, entity)) {
         this.game.fireAt(this.game.player, entity);
@@ -451,9 +473,22 @@ export class GameView extends Component<Props, State> {
     }
   };
 
-  private addEvent(...newEvents: string[]) {
+  private addEvent(...newEvents: GameEvent[]) {
     if (newEvents.length > 0) {
       this.setState(({ events }) => ({ events: events.concat(newEvents) }));
+      newEvents.forEach(event => {
+        event.traces.forEach(t => {
+          const geo = new BufferGeometry();
+          geo.setFromPoints([t.from, t.to]);
+          const mat = getLineMaterial(t.isHit ? 0xff0000 : 0xcccccc);
+          mat.transparent = true;
+          mat.opacity = 1;
+          const trace = new Line(geo, mat);
+          trace.position.setZ(Height.BulletTrace);
+          this.scene.add(trace);
+          this.bulletTraces.push(trace);
+        });
+      });
     }
   }
 
