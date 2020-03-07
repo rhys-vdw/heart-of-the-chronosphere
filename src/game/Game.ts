@@ -16,7 +16,6 @@ export interface Level {
   readonly entities: Entity[];
   readonly map: Map;
   readonly maze: Maze;
-  readonly navMesh: NavMesh;
 }
 
 export class Game {
@@ -42,8 +41,7 @@ export class Game {
       return {
         entities,
         maze,
-        map: mazeToMap(maze),
-        navMesh: new NavMesh(maze)
+        map: mazeToMap(maze)
       };
     });
     this.player = createEntity("human");

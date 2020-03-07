@@ -252,7 +252,7 @@ export class GameView extends Component<Props, State> {
 
     // -- TEST random walk --
 
-    const { navMesh } = this.game.getCurrentLevel();
+    const { navMesh } = this.game.getCurrentLevel().maze;
     const path = navMesh.findPath({ r: 0, t: 0 }, { r: 12, t: 20 });
     console.log("path", path);
     const pathG = new BufferGeometry();
@@ -508,25 +508,13 @@ export class GameView extends Component<Props, State> {
   }
 
   private updateNavMesh() {
-    const { navMesh, maze } = this.game.getCurrentLevel();
+    const { maze } = this.game.getCurrentLevel();
+    const { navMesh } = maze;
     console.log("updated nav path");
     this.navPathGeometry.setFromPoints(
       navMesh.byCoordinate.flatMap(nodes =>
         nodes.flatMap(node =>
-          node.connections.flatMap(n => [
-            getTileCenter(
-              maze.rings,
-              maze.radius,
-              node.coordinate.r,
-              node.coordinate.t
-            ),
-            getTileCenter(
-              maze.rings,
-              maze.radius,
-              n.coordinate.r,
-              n.coordinate.t
-            )
-          ])
+          node.connections.flatMap(n => [node.position, n.position])
         )
       )
     );

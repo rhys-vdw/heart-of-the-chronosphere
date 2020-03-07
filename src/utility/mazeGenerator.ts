@@ -2,6 +2,7 @@ import { range, sampleSize, times } from "lodash";
 import { Vector2 } from "three";
 import { EntityType } from "../game/Entity";
 import { entityTypes } from "../game/entityFactories";
+import { NavMesh } from "./navigation";
 
 export interface MazeOptions {
   readonly blockChance: number;
@@ -34,6 +35,7 @@ export interface Maze {
   readonly rings: Rings;
   readonly radius: number;
   readonly spawns: readonly Spawn[];
+  readonly navMesh: NavMesh;
 }
 
 export function generateEmptyLevel(
@@ -52,7 +54,12 @@ export function generateEmptyLevel(
     rings.push(times(nextPowerOfTwo(maxTileCount), () => createTile()));
   }
 
-  return { radius, rings, spawns: [] as Spawn[] };
+  return {
+    radius,
+    rings,
+    spawns: [] as Spawn[],
+    navMesh: null as NavMesh | null
+  };
 }
 
 export function generateRandomMaze({
@@ -79,7 +86,7 @@ export function generateRandomMaze({
   const [downIndex, upIndex] = sampleSize(tileIndexes, 2);
 
   function spawnAtIndex(index: number, type: EntityType) {
-    const [i, j] = getTileCoordinate(maze, index);
+    const [i, j] = getTileCoordinate(maze.rings, index);
     const position = getTileCenter(maze.rings, maze.radius, i, j);
     maze.spawns.push({ position, type });
   }
@@ -87,7 +94,8 @@ export function generateRandomMaze({
   spawnAtIndex(downIndex, entityTypes.stairsDown);
   spawnAtIndex(upIndex, entityTypes.stairsUp);
 
-  return maze;
+  maze.navMesh = new NavMesh(maze.rings, maze.radius);
+  return maze as Maze;
 }
 
 function toCircumference(radius: number) {
@@ -134,12 +142,12 @@ export const getRingDepth = (ringCount: number, radius: number) =>
   radius * (1 / ringCount);
 
 export const getTileCoordinate = (
-  maze: Maze,
+  rings: Rings,
   index: number
 ): [number, number] => {
   let tileCount = 0;
-  for (let ringIndex = 0; ringIndex < maze.rings.length; ringIndex++) {
-    const ringTileCount = maze.rings[ringIndex].length;
+  for (let ringIndex = 0; ringIndex < rings.length; ringIndex++) {
+    const ringTileCount = rings[ringIndex].length;
     if (index < tileCount + ringTileCount) {
       return [ringIndex, index - tileCount];
     }

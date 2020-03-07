@@ -1,4 +1,4 @@
-import { Maze, getTileCenter } from "./mazeGenerator";
+import { Maze, getTileCenter, Rings } from "./mazeGenerator";
 import { sample, isEqual } from "lodash";
 import { repeat } from "./math";
 import { Vector2 } from "three";
@@ -8,27 +8,27 @@ export interface Coordinate {
   readonly t: number;
 }
 
-export function getParent(maze: Maze, { r, t }: Coordinate): Coordinate {
+export function getParent(rings: Rings, { r, t }: Coordinate): Coordinate {
   if (r === 0) {
     throw new RangeError("Tile has no parent");
   }
   if (r === 1) {
     return { r: r - 1, t: 0 };
   }
-  const tileRing = maze.rings[r];
-  const parentRing = maze.rings[r - 1];
+  const tileRing = rings[r];
+  const parentRing = rings[r - 1];
   return {
     r: r - 1,
     t: parentRing.length < tileRing.length ? Math.floor(t / 2) : t
   };
 }
 
-export function getChildren(maze: Maze, { r, t }: Coordinate): Coordinate[] {
-  if (r >= maze.rings.length) {
+export function getChildren(rings: Rings, { r, t }: Coordinate): Coordinate[] {
+  if (r >= rings.length) {
     throw new RangeError("Tile has no children");
   }
-  const tileRing = maze.rings[r];
-  const childRing = maze.rings[r + 1];
+  const tileRing = rings[r];
+  const childRing = rings[r + 1];
   if (tileRing.length < childRing.length) {
     const firstChildT = t * 2;
     return [
@@ -55,23 +55,23 @@ interface Node {
 export class NavMesh {
   byCoordinate: Node[][] = [[]];
 
-  constructor(maze: Maze) {
+  constructor(rings: Rings, radius: number) {
     let prevRingLength = 0;
-    maze.rings.forEach((ring, r) => {
+    rings.forEach((ring, r) => {
       this.byCoordinate[r] = [];
       ring.forEach((room, t) => {
         const node: Node = {
           coordinate: { r, t },
           connections: [],
-          position: getTileCenter(maze.rings, maze.radius, r, t)
+          position: getTileCenter(rings, radius, r, t)
         };
         this.byCoordinate[r][t] = node;
       });
       this.byCoordinate[r].forEach((node, t, ringNodes) => {
-        const room = maze.rings[r][t];
+        const room = rings[r][t];
         // Connect to parent.
         if (prevRingLength > 0 && !room.isInnerBlocked) {
-          const { r: pr, t: pt } = getParent(maze, node.coordinate);
+          const { r: pr, t: pt } = getParent(rings, node.coordinate);
           const parentNode = this.byCoordinate[pr][pt];
           parentNode.connections.push(node);
           node.connections.push(parentNode);
