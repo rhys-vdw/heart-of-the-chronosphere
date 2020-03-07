@@ -7,7 +7,12 @@ import {
   MazeOptions
 } from "../utility/mazeGenerator";
 import { rayCastSegments } from "../utility/rayCast";
-import { Command, CommandStatus, MoveCommand } from "./Command";
+import {
+  Command,
+  CommandStatus,
+  MoveCommand,
+  RangedAttackCommand
+} from "./Command";
 import { Entity, EntityType } from "./Entity";
 import { createEntity, entityTypes } from "./entityFactories";
 
@@ -43,7 +48,7 @@ export class Game {
         map: mazeToMap(maze)
       };
     });
-    this.player = createEntity("human");
+    this.player = createEntity("player");
   }
 
   getCurrentLevelIndex() {
@@ -68,6 +73,20 @@ export class Game {
 
   isInReachOfPlayer(target: Entity): boolean {
     return this.isInReach(this.player, target);
+  }
+
+  canFireAt(actor: Entity, target: Entity): boolean {
+    if (actor.held == null) {
+      return false;
+    }
+    return actor.held.type.rangedWeapon !== null && target.stats !== null;
+  }
+
+  fireAt(actor: Entity, target: Entity): void {
+    if (!this.canFireAt(actor, target)) {
+      throw new Error("Cannot fire");
+    }
+    this.setPlayerCommand(new RangedAttackCommand(target.position));
   }
 
   use(useTarget: Entity) {

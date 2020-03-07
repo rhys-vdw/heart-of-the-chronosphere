@@ -17,8 +17,8 @@ export class Main extends Component<{}, State> {
       minTileWidth: 30,
       minRingDepth: 20,
       radius: 300,
-      capHeight: 200,
-      sliceCount: 10
+      capHeight: 50,
+      sliceCount: 2
     }
   };
 

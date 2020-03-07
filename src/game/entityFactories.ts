@@ -9,15 +9,37 @@ function fixTypes<T extends Record<string, EntityType>>(
   return struct;
 }
 
+const sixShooter: EntityType = {
+  color: 0xff0000,
+  noun: "six shooter",
+  appearance: AppearanceType.Item,
+  scale: 5,
+  inititalStats: null,
+  controllerName: "none",
+  getUseCommand: null,
+  rangedWeapon: {
+    accuracy: 7,
+    damage: 7,
+    steadyTickCount: 5,
+    recoverTickCount: 10,
+    ammoCapacity: 6,
+    reloadCount: 1,
+    reloadTickCount: 20
+  }
+};
+
 export const entityTypes = fixTypes({
-  human: {
+  player: {
     color: 0x5555ff,
-    noun: "human",
+    noun: "player",
     appearance: AppearanceType.Ring,
     scale: 10,
     inititalStats: {
-      moveSpeed: 5
+      moveSpeed: 5,
+      health: 20,
+      maxHealth: 20
     },
+    initialHeld: sixShooter,
     controllerName: "none",
     getUseCommand: null
   },
@@ -28,7 +50,9 @@ export const entityTypes = fixTypes({
     appearance: AppearanceType.Ring,
     scale: 10,
     inititalStats: {
-      moveSpeed: 3
+      moveSpeed: 3,
+      health: 10,
+      maxHealth: 10
     },
     controllerName: "randomMovement",
     getUseCommand: null
@@ -52,7 +76,9 @@ export const entityTypes = fixTypes({
     inititalStats: null,
     controllerName: "none",
     getUseCommand: () => new TakeStairsCommand(false)
-  }
+  },
+
+  sixShooter
 });
 
 export type EntityTypeName = keyof typeof entityTypes;
@@ -65,6 +91,7 @@ export function createEntity(
     typeof typeOrTypeName === "string"
       ? entityTypes[typeOrTypeName]
       : typeOrTypeName;
+
   return {
     position,
     type,
@@ -73,6 +100,8 @@ export function createEntity(
       currentCommand: null,
       currentCommandTickCount: 0
     },
-    controller: getController(type.controllerName)
+    held: type.initialHeld && createEntity(type.initialHeld),
+    controller: getController(type.controllerName),
+    ammunition: type.rangedWeapon && { loaded: type.rangedWeapon.ammoCapacity }
   };
 }

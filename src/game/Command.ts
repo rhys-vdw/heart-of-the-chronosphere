@@ -86,3 +86,38 @@ export class TakeStairsCommand implements Command {
     return CommandStatus.InProgress;
   }
 }
+
+export class RangedAttackCommand implements Command {
+  private target: Vector2;
+  private tickCount: number = 0;
+  constructor(target: Vector2) {
+    this.target = target;
+  }
+  nextTick(entity: Entity, game: Game): CommandStatus {
+    if (entity.held === undefined) {
+      throw new TypeError(`${entity.type.noun} cannot hold a weapon`);
+    }
+    if (entity.held === null) {
+      throw new TypeError(`${entity.type.noun} is not holding a weapon`);
+    }
+    const held = entity.held;
+    if (held.type.rangedWeapon === undefined) {
+      throw new TypeError(`${held.type.noun} is not ranged`);
+    }
+    const { steadyTickCount, recoverTickCount } = held.type.rangedWeapon;
+    this.tickCount++;
+    if (this.tickCount === steadyTickCount) {
+      if (held.ammunition!.loaded === 0) {
+        game.addEvent(
+          `*click* ${entity.type.noun} fails to fire ${held.type.noun}`
+        );
+        return CommandStatus.Complete;
+      }
+      held.ammunition!.loaded--;
+      game.addEvent(`${entity.type.noun} fires ${held.type.noun}!`);
+    }
+    return this.tickCount > steadyTickCount + recoverTickCount
+      ? CommandStatus.Complete
+      : CommandStatus.InProgress;
+  }
+}

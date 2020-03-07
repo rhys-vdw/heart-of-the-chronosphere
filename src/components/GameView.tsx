@@ -438,6 +438,8 @@ export class GameView extends Component<Props, State> {
         } else {
           this.addEvent(`${entity.type.noun} is out of range`);
         }
+      } else if (this.game.canFireAt(this.game.player, entity)) {
+        this.game.fireAt(this.game.player, entity);
       }
     } else {
       const target = this.raycastWorldPosition(event);
