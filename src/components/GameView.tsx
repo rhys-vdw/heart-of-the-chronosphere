@@ -417,11 +417,19 @@ export class GameView extends Component<Props, State> {
         );
         const geo = this.movementLine.geometry as BufferGeometry;
         const positionBuffer = geo.attributes.position as BufferAttribute;
-        const from = this.game.player.position;
-        positionBuffer.setXYZ(0, from.x, from.y, 0);
-        positionBuffer.setXYZ(1, to.x, to.y, 0);
-        positionBuffer.needsUpdate = true;
-        this.movementLine.visible = true;
+        const from = this.game.player.position.clone();
+        const offset = to.clone().sub(from);
+        const radius = this.game.player.type.scale / 2;
+        if (offset.length() > radius) {
+          offset.normalize().multiplyScalar(radius);
+          from.add(offset);
+          positionBuffer.setXYZ(0, from.x, from.y, 0);
+          positionBuffer.setXYZ(1, to.x, to.y, 0);
+          positionBuffer.needsUpdate = true;
+          this.movementLine.visible = true;
+        } else {
+          this.movementLine.visible = false;
+        }
       } else {
         this.movementLine.visible = false;
       }
