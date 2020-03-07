@@ -1,8 +1,8 @@
-import { range, sampleSize, times } from "lodash";
+import { range, sampleSize, times, sample } from "lodash";
 import { Vector2 } from "three";
 import { EntityType } from "../game/Entity";
 import { entityTypes } from "../game/entityFactories";
-import { NavMesh } from "./navigation";
+import { NavMesh, Coordinate, areCoordinatesEqual } from "./navigation";
 
 export interface MazeOptions {
   readonly blockChance: number;
@@ -82,19 +82,33 @@ export function generateRandomMaze({
   if (tileCount < 2) {
     throw new Error(`tileCount < 2: ${tileCount}`);
   }
-  const tileIndexes = range(tileCount);
-  const [downIndex, upIndex] = sampleSize(tileIndexes, 2);
 
-  function spawnAtIndex(index: number, type: EntityType) {
-    const [i, j] = getTileCoordinate(maze.rings, index);
-    const position = getTileCenter(maze.rings, maze.radius, i, j);
+  // Find random entrace node.
+  const tileIndexes = range(tileCount);
+  const downIndex = sample(tileIndexes)!;
+  const downCoord = getTileCoordinate(maze.rings, downIndex);
+
+  // Knock its walls out to ensure it's not completely isolated.
+  maze.rings[downCoord.r][downCoord.t].isClockwiseBlocked = false;
+  maze.rings[downCoord.r][downCoord.t].isInnerBlocked = false;
+
+  // Generate nav mesh.
+  maze.navMesh = new NavMesh(maze.rings, maze.radius);
+
+  // Get a random reachable position for exit.
+  const reachable = maze.navMesh
+    .getReachableNodes(downCoord)
+    .filter(n => !areCoordinatesEqual(n.coordinate, downCoord));
+  const upCoord = sample(reachable)!.coordinate;
+
+  function spawnAt({ r, t }: Coordinate, type: EntityType) {
+    const position = getTileCenter(maze.rings, maze.radius, r, t);
     maze.spawns.push({ position, type });
   }
 
-  spawnAtIndex(downIndex, entityTypes.stairsDown);
-  spawnAtIndex(upIndex, entityTypes.stairsUp);
+  spawnAt(downCoord, entityTypes.stairsDown);
+  spawnAt(upCoord, entityTypes.stairsUp);
 
-  maze.navMesh = new NavMesh(maze.rings, maze.radius);
   return maze as Maze;
 }
 
@@ -141,15 +155,12 @@ export function generateSphereOptions({
 export const getRingDepth = (ringCount: number, radius: number) =>
   radius * (1 / ringCount);
 
-export const getTileCoordinate = (
-  rings: Rings,
-  index: number
-): [number, number] => {
+export const getTileCoordinate = (rings: Rings, index: number): Coordinate => {
   let tileCount = 0;
   for (let ringIndex = 0; ringIndex < rings.length; ringIndex++) {
     const ringTileCount = rings[ringIndex].length;
     if (index < tileCount + ringTileCount) {
-      return [ringIndex, index - tileCount];
+      return { r: ringIndex, t: index - tileCount };
     }
     tileCount += ringTileCount;
   }

@@ -250,23 +250,23 @@ export class GameView extends Component<Props, State> {
     );
     this.scene.add(navLines);
 
-    // -- TEST random walk --
+    // -- TEST pathfinding --
 
-    const { navMesh } = this.game.getCurrentLevel().maze;
-    const path = navMesh.findPath({ r: 0, t: 0 }, { r: 12, t: 20 });
-    console.log("path", path);
-    const pathG = new BufferGeometry();
-    if (path !== null) {
-      pathG.setFromPoints(path.map(n => n.position));
-    }
-    const line = new Line(
-      pathG,
-      new LineBasicMaterial({
-        color: 0xff0000
-      })
-    );
-    line.position.setZ(10);
-    this.scene.add(line);
+    // const { navMesh } = this.game.getCurrentLevel().maze;
+    // const path = navMesh.findPath({ r: 0, t: 0 }, { r: 12, t: 20 });
+    // console.log("path", path);
+    // const pathG = new BufferGeometry();
+    // if (path !== null) {
+    //   pathG.setFromPoints(path.map(n => n.position));
+    // }
+    // const line = new Line(
+    //   pathG,
+    //   new LineBasicMaterial({
+    //     color: 0xff0000
+    //   })
+    // );
+    // line.position.setZ(10);
+    // this.scene.add(line);
 
     // Create movement indicator line.
 

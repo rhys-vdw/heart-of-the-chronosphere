@@ -8,6 +8,10 @@ export interface Coordinate {
   readonly t: number;
 }
 
+export function areCoordinatesEqual(a: Coordinate, b: Coordinate): boolean {
+  return a.r === b.r && a.t === b.t;
+}
+
 export function getParent(rings: Rings, { r, t }: Coordinate): Coordinate {
   if (r === 0) {
     throw new RangeError("Tile has no parent");
@@ -125,6 +129,7 @@ export class NavMesh {
 
       // Expand this node.
       searchNode.node.connections.forEach(node => {
+        // TODO: Don't put dupes in open list...
         if (!closedList.has(node)) {
           const g =
             searchNode.g + searchNode.node.position.distanceTo(node.position);
@@ -144,6 +149,25 @@ export class NavMesh {
 
     // Nothing found.
     return null;
+  }
+
+  /**
+   * Find all nodes reachable from a coordinate (including itself)
+   */
+  getReachableNodes(from: Coordinate): Node[] {
+    const fromNode = this.getNodeAtCoord(from);
+    const openList = [fromNode];
+    const result = new Set<Node>();
+    while (openList.length > 0) {
+      const current = openList.pop()!;
+      current.connections.forEach(node => {
+        if (!result.has(node)) {
+          result.add(current);
+          openList.push(node);
+        }
+      });
+    }
+    return Array.from(result);
   }
 
   getNodeAtCoord({ r, t }: Coordinate): Readonly<Node> {

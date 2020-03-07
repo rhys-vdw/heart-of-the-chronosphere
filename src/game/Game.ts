@@ -1,16 +1,15 @@
-import { remove, times } from "lodash";
+import { remove } from "lodash";
 import { Vector2 } from "three";
 import { Map, mazeToMap } from "../utility/Map";
-import { rayCastSegments } from "../utility/rayCast";
 import {
+  generateRandomMaze,
   Maze,
-  MazeOptions,
-  generateRandomMaze
+  MazeOptions
 } from "../utility/mazeGenerator";
-import { MoveCommand, Command, CommandStatus } from "./Command";
+import { rayCastSegments } from "../utility/rayCast";
+import { Command, CommandStatus, MoveCommand } from "./Command";
 import { Entity, EntityType } from "./Entity";
 import { createEntity, entityTypes } from "./entityFactories";
-import { NavMesh } from "../utility/navigation";
 
 export interface Level {
   readonly entities: Entity[];
