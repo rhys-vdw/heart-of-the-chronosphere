@@ -18,14 +18,14 @@ const sixShooter: EntityType = {
   controllerName: "none",
   getUseCommand: null,
   rangedWeapon: {
-    accuracy: 7,
+    accuracy: 15,
     damageBonus: 3,
     damageRoll: [1, 3],
     steadyTickCount: 6,
     recoverTickCount: 6,
     ammoCapacity: 6,
     reloadCount: 1,
-    reloadTickCount: 3
+    reloadTickCount: 6
   }
 };
 
