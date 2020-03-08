@@ -30,7 +30,6 @@ export class EnemyAi implements AiController {
     console.log("tick " + game.tickCount);
     const shootDistance = 100;
     const forgetTickCount = 50;
-    const stepDistance = 5;
 
     const { player } = game;
     const playerDirection = player.position
@@ -58,10 +57,7 @@ export class EnemyAi implements AiController {
     }
     if (game.tickCount - this.lastSeenPlayerTick < forgetTickCount) {
       // Move current position towards enemy.
-      const target = entity.position.clone();
-      moveTowardsInPlace(target, this.lastSeenPosition, stepDistance);
-      console.log("move");
-      return new MoveCommand(target);
+      return new MoveCommand(this.lastSeenPosition);
     }
 
     if (
