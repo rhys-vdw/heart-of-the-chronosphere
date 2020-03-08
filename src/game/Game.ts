@@ -180,7 +180,6 @@ export class Game {
           .multiplyScalar(e.type.scale);
         const p1 = e.position.clone().sub(perpendicular);
         const p2 = e.position.clone().add(perpendicular);
-        console.log(p1, p2);
         acc.push([e, createSegment(p1.x, p1.y, p2.x, p2.y)]);
       }
       return acc;
