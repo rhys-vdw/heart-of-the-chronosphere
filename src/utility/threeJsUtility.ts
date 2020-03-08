@@ -14,7 +14,7 @@ export function moveTowardsInPlace(
   maxDistance: number
 ): void {
   const distance = from.distanceTo(to);
-  if (distance > maxDistance) {
+  if (distance < maxDistance) {
     from.copy(to);
   } else {
     const step = to
