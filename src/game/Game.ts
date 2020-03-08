@@ -268,6 +268,7 @@ export class Game {
     }
 
     const { entities } = this.getCurrentLevel();
+    this.tickCount++;
 
     for (const entity of entities) {
       const { commandState, controller } = entity;
@@ -287,7 +288,6 @@ export class Game {
         }
       }
     }
-    this.tickCount++;
     return this.flushEvents();
   }
 

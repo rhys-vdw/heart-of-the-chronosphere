@@ -8,6 +8,7 @@ export interface Entity {
   position: Vector2;
   held?: Entity | null;
   ammunition?: Ammunition;
+  lastHitTick: number;
   readonly type: EntityType;
   readonly stats: Stats | null;
   readonly commandState: CommandState;

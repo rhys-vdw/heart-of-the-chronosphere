@@ -26,7 +26,7 @@ import {
   Color
 } from "three";
 import { AppearanceType, Entity } from "../game/Entity";
-import { Game, GameEvent, GameState } from "../game/Game";
+import { Game, GameEvent } from "../game/Game";
 import { generateSphereOptions, SphereOptions } from "../utility/mazeGenerator";
 import { getMousePosition } from "../utility/mouse";
 import { vec3to2, moveTowardsInPlace } from "../utility/threeJsUtility";
@@ -722,6 +722,14 @@ export class GameView extends Component<Props, State> {
         this.viewByEntity.set(entity, obj);
         this.entityViews.push(obj);
       }
+
+      if (obj instanceof Line) {
+        obj.material =
+          entity.lastHitTick === this.game.tickCount
+            ? getLineMaterial(0xff0000)
+            : getLineMaterial(entity.type.color);
+      }
+
       obj.position.setX(entity.position.x);
       obj.position.setY(entity.position.y);
       isVisible.add(obj);

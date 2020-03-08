@@ -181,7 +181,9 @@ export class RangedAttackCommand implements Command {
           const damage = rollDice(...damageRoll) + damageBonus;
           const adjustedDamage = damage * (isCritical ? 2 : 1);
           rayCastHit.entity.stats!.health -= adjustedDamage;
+          rayCastHit.entity.lastHitTick = game.tickCount;
           const { noun } = rayCastHit.entity!.type;
+
           game.addEvent({
             message: isCritical
               ? `The bullet rips through the ${noun}'s brittle frame for ${adjustedDamage} damage`
