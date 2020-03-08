@@ -502,7 +502,9 @@ export class GameView extends Component<Props, State> {
         if (object !== null) {
           const userData = expectUserData(object);
           const { entity } = userData;
-          if (this.game.isUsable(entity)) {
+          if (entity === this.game.player) {
+            // Do nothing.
+          } else if (this.game.isUsable(entity)) {
             if (this.game.isInReachOfPlayer(entity)) {
               this.game.use(entity);
             } else {
