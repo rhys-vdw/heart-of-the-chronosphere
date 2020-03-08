@@ -30,7 +30,8 @@ export interface EntityType {
 
 export interface RangedWeapon {
   readonly accuracy: number;
-  readonly damage: number;
+  readonly damageBonus: number;
+  readonly damageRoll: [number, number];
   readonly steadyTickCount: number;
   readonly recoverTickCount: number;
   readonly ammoCapacity: number;

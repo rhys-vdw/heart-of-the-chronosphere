@@ -96,7 +96,7 @@ export class Game {
     if (!this.canFireAt(actor, target)) {
       throw new Error("Cannot fire");
     }
-    this.setPlayerCommand(new RangedAttackCommand(target.position));
+    this.setPlayerCommand(new RangedAttackCommand(target));
   }
 
   use(useTarget: Entity) {

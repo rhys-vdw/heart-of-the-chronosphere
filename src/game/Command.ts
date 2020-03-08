@@ -1,5 +1,6 @@
 import { Entity } from "./Entity";
 import { Game } from "./Game";
+import { rollDice } from "./dice";
 import { Vector2 } from "three";
 import { entityTypes } from "./entityFactories";
 import { lerp, getNormalRandom } from "../utility/math";
@@ -93,10 +94,12 @@ const inaccurateSpread = Math.PI;
 const accurateAccuracy = 20;
 
 export class RangedAttackCommand implements Command {
-  private target: Vector2;
+  private targetPosition: Vector2;
+  private target: Entity;
   private tickCount: number = 0;
-  constructor(target: Vector2) {
+  constructor(target: Entity) {
     this.target = target;
+    this.targetPosition = target.position;
   }
   nextTick(entity: Entity, game: Game): CommandStatus {
     if (entity.held === undefined) {
@@ -112,7 +115,8 @@ export class RangedAttackCommand implements Command {
     const {
       steadyTickCount,
       recoverTickCount,
-      damage,
+      damageBonus,
+      damageRoll,
       accuracy
     } = held.type.rangedWeapon;
     this.tickCount++;
@@ -132,13 +136,11 @@ export class RangedAttackCommand implements Command {
       );
       const r = getNormalRandom() - 0.5;
       const spread = r * maxSpread;
-      const direction = this.target
+      const direction = this.targetPosition
         .clone()
         .sub(entity.position)
         .normalize()
         .rotateAround(new Vector2(0, 0), spread);
-      console.log({ r, maxSpread, spread, direction });
-
       const rayCastHit = game.rayCastEntities(entity, direction);
       if (rayCastHit === null) {
         game.addEvent(`The bullet disappears`);
@@ -154,11 +156,16 @@ export class RangedAttackCommand implements Command {
         if (rayCastHit.entity === null) {
           game.addEvent({ message: `The bullet misses`, traces: [trace] });
         } else {
-          rayCastHit.entity.stats!.health -= damage;
+          const isCritical =
+            rayCastHit.entity === this.target && rollDice(2, 6) === 12;
+          const damage = rollDice(...damageRoll) + damageBonus;
+          const adjustedDamage = damage * (isCritical ? 2 : 1);
+          rayCastHit.entity.stats!.health -= adjustedDamage;
+          const { noun } = rayCastHit.entity!.type;
           game.addEvent({
-            message: `The bullet hits ${
-              rayCastHit.entity!.type.noun
-            } for ${damage} damage`,
+            message: isCritical
+              ? `The bullet rips through the ${noun}'s brittle frame for ${adjustedDamage} damage`
+              : `The bullet deals ${adjustedDamage} to ${noun}`,
             traces: [trace]
           });
           if (rayCastHit.entity.stats!.health < 0) {
