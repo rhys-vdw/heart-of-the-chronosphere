@@ -9,6 +9,7 @@ import {
 } from "./Command";
 import { Vector2 } from "three";
 import { moveTowardsInPlace } from "../utility/threeJsUtility";
+import { getRandomInt } from "./dice";
 
 export interface AiController {
   readonly nextCommand: (entity: Entity, game: Game) => Command;
@@ -23,43 +24,57 @@ function fixTypes<T extends Record<string, AiFactory>>(
 }
 
 export class EnemyAi implements AiController {
-  private lastSeenPlayerTick = -Infinity;
   private lastSeenPosition = new Vector2();
+  private isChasing = false;
 
   nextCommand(entity: Entity, game: Game): Command {
-    console.log("tick " + game.tickCount);
     const shootDistance = 100;
-    const forgetTickCount = 50;
-
     const { player } = game;
     const playerDirection = player.position
       .clone()
       .sub(entity.position)
       .normalize();
 
+    // Check if player is visible.
     const result = game.rayCastEntities(entity, playerDirection, [player]);
     if (result !== null && result.entity !== null) {
-      console.log("saw player");
-      this.lastSeenPlayerTick = game.tickCount;
+      // Store that we are chasing player.
+      this.isChasing = true;
+
+      // Can see player, so store its position.
       this.lastSeenPosition.copy(player.position);
-    } else {
-      console.log("cannot see player");
-    }
-    if (
-      this.lastSeenPlayerTick === game.tickCount &&
-      entity.position.distanceTo(this.lastSeenPosition) <= shootDistance
-    ) {
-      if (entity.held!.ammunition!.loaded === 0 && Math.random() > 0.2) {
-        console.log("reload before shoot");
-        return new Reload();
+
+      // Check if we're in shooting range.
+      if (entity.position.distanceTo(this.lastSeenPosition) <= shootDistance) {
+        const isEmpty = entity.held!.ammunition!.loaded === 0;
+        // Reload unless we forgot.
+        if (isEmpty && Math.random() > 0.2) {
+          return new Reload();
+        }
+
+        // Otherwise attack.
+        return new RangedAttackCommand(player);
       }
-      return new RangedAttackCommand(player);
-    }
-    if (game.tickCount - this.lastSeenPlayerTick < forgetTickCount) {
-      // Move current position towards enemy.
-      return new MoveCommand(this.lastSeenPosition);
     }
 
+    if (this.isChasing) {
+      // Move current position towards last seen player position.
+      const targetDistance = entity.position.distanceTo(this.lastSeenPosition);
+      if (targetDistance < 0.1) {
+        this.isChasing = false;
+      } else {
+        const maxMove = 10;
+        const target = entity.position.clone();
+        moveTowardsInPlace(
+          target,
+          this.lastSeenPosition,
+          Math.min(maxMove, targetDistance)
+        );
+        return new MoveCommand(this.lastSeenPosition);
+      }
+    }
+
+    // We're done chasing the player, time to reload.
     if (
       entity.held!.ammunition!.loaded <
       entity.held!.type.rangedWeapon!.ammoCapacity
@@ -67,8 +82,8 @@ export class EnemyAi implements AiController {
       return new Reload();
     }
 
-    const waitTickCount = 10;
-    return new IdleCommand(waitTickCount);
+    // Just do nothing repeatedly.
+    return new IdleCommand(5);
   }
 }
 
