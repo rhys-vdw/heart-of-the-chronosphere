@@ -16,9 +16,9 @@ export class Main extends Component<{}, State> {
       blockChance: 0.3,
       minTileWidth: 30,
       minRingDepth: 20,
-      radius: 300,
-      capHeight: 50,
-      sliceCount: 2
+      minRadius: 50,
+      maxRadius: 300,
+      sliceCount: 11
     }
   };
 

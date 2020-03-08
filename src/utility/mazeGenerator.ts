@@ -128,32 +128,40 @@ function nextPowerOfTwo(i: number) {
 }
 
 export interface SphereOptions {
-  readonly capHeight: number;
+  readonly minRadius: number;
+  readonly maxRadius: number;
   readonly blockChance: number;
-  readonly radius: number;
   readonly sliceCount: number;
   readonly minRingDepth: number;
   readonly minTileWidth: number;
 }
 
 export function generateSphereOptions({
-  radius,
-  capHeight,
+  minRadius,
+  maxRadius,
   sliceCount,
   blockChance,
   minRingDepth,
   minTileWidth
 }: SphereOptions): MazeOptions[] {
-  const totalSliceHeight = (radius - capHeight) * 2;
-  const sliceHeight = totalSliceHeight / sliceCount;
+  const halfSlicesHeight = Math.sqrt(
+    Math.pow(maxRadius, 2) - Math.pow(minRadius, 2)
+  );
+  const slicesHeight = 2 * halfSlicesHeight;
+  const sliceHeight = slicesHeight / sliceCount;
+  console.log(sliceHeight);
   return times<MazeOptions>(sliceCount, i => {
-    const a = totalSliceHeight / 2 - sliceHeight * i;
-    const c = radius;
-    const b = Math.sqrt(Math.pow(c, 2) - Math.pow(a, 2));
+    const floorHeight = Math.abs(sliceHeight * (i - sliceCount / 2));
+    const levelRadius = Math.sqrt(
+      Math.pow(maxRadius, 2) - Math.pow(floorHeight, 2)
+    );
+    if (isNaN(levelRadius)) {
+      throw new Error("levelRadius is NaN");
+    }
     return {
-      radius: b,
+      radius: levelRadius,
       blockChance,
-      ringCount: Math.max(1, Math.floor(b / minRingDepth)),
+      ringCount: Math.max(1, Math.floor(levelRadius / minRingDepth)),
       minTileWidth
     };
   });
