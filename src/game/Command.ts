@@ -140,10 +140,14 @@ export class RangedAttackCommand implements Command {
         } else {
           rayCastHit.entity.stats!.health -= damage;
           game.addEvent({
-            message: `The bullet hits ${rayCastHit.entity!.type.noun}`,
+            message: `The bullet hits ${
+              rayCastHit.entity!.type.noun
+            } for ${damage} damage`,
             traces: [trace]
           });
-          game.killEntity(rayCastHit.entity);
+          if (rayCastHit.entity.stats!.health < 0) {
+            game.killEntity(rayCastHit.entity);
+          }
         }
       }
     }
