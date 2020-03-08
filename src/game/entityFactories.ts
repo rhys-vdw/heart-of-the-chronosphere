@@ -56,7 +56,7 @@ export const entityTypes = fixTypes({
     appearance: AppearanceType.Ring,
     scale: 10,
     inititalStats: {
-      moveSpeed: 7,
+      moveSpeed: 5,
       health: 30,
       maxHealth: 30
     },
