@@ -3,6 +3,7 @@ import { Vector2 } from "three";
 import { EntityType } from "../game/Entity";
 import { entityTypes } from "../game/entityFactories";
 import { NavMesh, Coordinate, areCoordinatesEqual } from "./navigation";
+import { getRandomInt } from "../game/dice";
 
 export interface MazeOptions {
   readonly blockChance: number;
@@ -108,6 +109,12 @@ export function generateRandomMaze({
 
   spawnAt(downCoord, entityTypes.stairsDown);
   spawnAt(upCoord, entityTypes.stairsUp);
+
+  const enemyNodes = sampleSize(
+    reachable,
+    getRandomInt(reachable.length * 0.05, reachable.length * 0.1)
+  );
+  enemyNodes.forEach(c => spawnAt(c.coordinate, entityTypes.orc));
 
   return maze as Maze;
 }

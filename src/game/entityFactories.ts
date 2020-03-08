@@ -29,6 +29,26 @@ const sixShooter: EntityType = {
   }
 };
 
+const rifle: EntityType = {
+  color: 0xff0000,
+  noun: "rifle",
+  appearance: AppearanceType.Item,
+  scale: 5,
+  inititalStats: null,
+  controllerName: "none",
+  getUseCommand: null,
+  rangedWeapon: {
+    accuracy: 3,
+    damageBonus: 0,
+    damageRoll: [1, 3],
+    steadyTickCount: 15,
+    recoverTickCount: 20,
+    ammoCapacity: 3,
+    reloadCount: 3,
+    reloadTickCount: 30
+  }
+};
+
 export const entityTypes = fixTypes({
   player: {
     color: 0x5555ff,
@@ -36,9 +56,9 @@ export const entityTypes = fixTypes({
     appearance: AppearanceType.Ring,
     scale: 10,
     inititalStats: {
-      moveSpeed: 5,
-      health: 20,
-      maxHealth: 20
+      moveSpeed: 7,
+      health: 30,
+      maxHealth: 30
     },
     initialHeld: sixShooter,
     controllerName: "none",
@@ -55,7 +75,8 @@ export const entityTypes = fixTypes({
       health: 10,
       maxHealth: 10
     },
-    controllerName: "randomMovement",
+    initialHeld: rifle,
+    controllerName: "enemyAi",
     getUseCommand: null
   },
 

@@ -46,12 +46,6 @@ export class Game {
       const entities = maze.spawns.map(spawn =>
         createEntity(spawn.type, spawn.position)
       );
-      const orcCount = Math.random() * 8;
-      for (let i = 0; i < orcCount; i++) {
-        entities.push(
-          createEntity(entityTypes.orc, this.randomPointInMaze(maze))
-        );
-      }
       return {
         entities,
         maze,
@@ -170,14 +164,19 @@ export class Game {
     return rayCastSegments(from, direction, this.getCurrentLevel().map.walls);
   }
 
-  rayCastEntities(from: Entity, direction: Vector2) {
+  rayCastEntities(
+    from: Entity,
+    direction: Vector2,
+    otherEntities?: readonly Entity[]
+  ) {
     const level = this.getCurrentLevel();
-    const entitySegments = level.entities.reduce((acc, e) => {
+    const entities = otherEntities ?? level.entities;
+    const entitySegments = entities.reduce((acc, e) => {
       if (e !== from && e.stats !== null) {
         const offset = e.position.clone().sub(from.position);
         const perpendicular = new Vector2(offset.y, -offset.x)
           .normalize()
-          .multiplyScalar(e.type.scale);
+          .multiplyScalar(e.type.scale / 2);
         const p1 = e.position.clone().sub(perpendicular);
         const p2 = e.position.clone().add(perpendicular);
         acc.push([e, createSegment(p1.x, p1.y, p2.x, p2.y)]);

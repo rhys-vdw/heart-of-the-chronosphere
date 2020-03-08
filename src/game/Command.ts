@@ -19,8 +19,14 @@ export interface Command {
 // -- Commands --
 
 export class IdleCommand implements Command {
+  tickCount: number;
+  constructor(tickCount: number) {
+    this.tickCount = tickCount;
+  }
   nextTick(entity: Entity, game: Game): CommandStatus {
-    return CommandStatus.InProgress;
+    return --this.tickCount > 0
+      ? CommandStatus.InProgress
+      : CommandStatus.Complete;
   }
 }
 
