@@ -21,7 +21,8 @@ import {
   Vector2,
   Vector3,
   WebGLRenderer,
-  Material
+  Material,
+  LineDashedMaterial
 } from "three";
 import { AppearanceType, Entity } from "../game/Entity";
 import { Game, GameEvent } from "../game/Game";
@@ -198,7 +199,7 @@ export class GameView extends Component<Props, State> {
   private scene!: Scene;
   private camera!: Camera;
   private viewMesh!: Mesh;
-  private movementLine!: Line;
+  private indicatorLine!: Line;
   private wallLineSegments!: LineSegments;
   private lastTickTime: number = 0;
   private game: Game;
@@ -288,14 +289,18 @@ export class GameView extends Component<Props, State> {
       new Vector3(0, 0, 0),
       new Vector3(0, 0, 0)
     ]);
-    this.movementLine = new Line(
+    this.indicatorLine = new Line(
       movementLineGeometry,
-      getLineMaterial(this.game.player.type.color)
+      new LineDashedMaterial({
+        color: this.game.player.type.color,
+        dashSize: 3,
+        gapSize: 1
+      })
     );
-    this.movementLine.layers.set(Layer.Ui);
-    this.movementLine.frustumCulled = false;
-    this.movementLine.position.z = 100;
-    this.scene.add(this.movementLine);
+    this.indicatorLine.layers.set(Layer.Ui);
+    this.indicatorLine.frustumCulled = false;
+    this.indicatorLine.position.z = 100;
+    this.scene.add(this.indicatorLine);
 
     // Create view polygon.
 
@@ -334,6 +339,7 @@ export class GameView extends Component<Props, State> {
           const events = this.game.tick();
           this.addEvent(...events);
           this.lastTickTime += tickDuration;
+          this.updateBulletTraces();
           if (this.game.isWaitingForCommand()) {
             break;
           }
@@ -349,7 +355,6 @@ export class GameView extends Component<Props, State> {
       this.updateEntities();
       this.updateVisibilityPolygon();
       this.updateCursor(getMousePosition());
-      this.updateBulletTraces();
       this.camera.position.set(
         this.game.player.position.x,
         this.game.player.position.y,
@@ -424,7 +429,7 @@ export class GameView extends Component<Props, State> {
           this.game.player,
           vec3to2(target)
         );
-        const geo = this.movementLine.geometry as BufferGeometry;
+        const geo = this.indicatorLine.geometry as BufferGeometry;
         const positionBuffer = geo.attributes.position as BufferAttribute;
         const from = this.game.player.position.clone();
         const offset = to.clone().sub(from);
@@ -435,20 +440,21 @@ export class GameView extends Component<Props, State> {
           positionBuffer.setXYZ(0, from.x, from.y, 0);
           positionBuffer.setXYZ(1, to.x, to.y, 0);
           positionBuffer.needsUpdate = true;
-          this.movementLine.visible = true;
+          this.indicatorLine.computeLineDistances();
+          this.indicatorLine.visible = true;
         } else {
-          this.movementLine.visible = false;
+          this.indicatorLine.visible = false;
         }
       } else {
-        this.movementLine.visible = false;
+        this.indicatorLine.visible = false;
       }
     } else {
-      this.movementLine.visible = false;
+      this.indicatorLine.visible = false;
     }
   };
 
   private updateBulletTraces() {
-    const traceFadeSpeed = 0.03;
+    const traceFadeSpeed = 0.1;
     remove(this.bulletTraces, trace => {
       const material = trace.material as Material;
       material.opacity -= traceFadeSpeed;
