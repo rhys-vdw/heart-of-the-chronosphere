@@ -148,9 +148,9 @@ export function generateSphereOptions({
     Math.pow(maxRadius, 2) - Math.pow(minRadius, 2)
   );
   const slicesHeight = 2 * halfSlicesHeight;
+  sliceCount--; // Math is hard.
   const sliceHeight = slicesHeight / sliceCount;
-  console.log(sliceHeight);
-  return times<MazeOptions>(sliceCount, i => {
+  const result = times<MazeOptions>(sliceCount, i => {
     const floorHeight = Math.abs(sliceHeight * (i - sliceCount / 2));
     const levelRadius = Math.sqrt(
       Math.pow(maxRadius, 2) - Math.pow(floorHeight, 2)
@@ -165,6 +165,8 @@ export function generateSphereOptions({
       minTileWidth
     };
   });
+  result.push(result[0]);
+  return result;
 }
 
 export const getRingDepth = (ringCount: number, radius: number) =>
