@@ -54,7 +54,7 @@ export class MoveCommand implements Command {
 }
 
 export class TakeStairsCommand implements Command {
-  private tickCount: number = 0;
+  private tickCount = 0;
   private isStairsUp: boolean;
   constructor(isStairsUp: boolean) {
     this.isStairsUp = isStairsUp;
@@ -150,5 +150,45 @@ export class RangedAttackCommand implements Command {
     return this.tickCount > steadyTickCount + recoverTickCount
       ? CommandStatus.Complete
       : CommandStatus.InProgress;
+  }
+}
+
+export class Reload implements Command {
+  private tickCount = 0;
+  nextTick(entity: Entity, game: Game): CommandStatus {
+    if (entity.held === undefined) {
+      throw new TypeError(`${entity.type.noun} cannot hold a weapon`);
+    }
+    if (entity.held === null) {
+      throw new TypeError(`${entity.type.noun} is not holding a weapon`);
+    }
+    const held = entity.held;
+    const rangedWeapon = held.type.rangedWeapon;
+    if (rangedWeapon === undefined) {
+      throw new TypeError(`${held.type.noun} is not ranged`);
+    }
+    this.tickCount++;
+    if (held.ammunition!.loaded === rangedWeapon.ammoCapacity) {
+      game.addEvent({
+        message: `${entity.type.noun}'s ${held.type.noun} is already full`,
+        traces: []
+      });
+      return CommandStatus.Complete;
+    }
+    if (this.tickCount > rangedWeapon.reloadTickCount) {
+      const amount = Math.min(
+        rangedWeapon.reloadCount,
+        rangedWeapon.ammoCapacity - held.ammunition!.loaded
+      );
+      held.ammunition!.loaded += amount;
+      game.addEvent({
+        message: `${entity.type.noun} loaded ${amount} ammo into ${
+          held.type.noun
+        } (${held.ammunition!.loaded}/${rangedWeapon.ammoCapacity})`,
+        traces: []
+      });
+      return CommandStatus.Complete;
+    }
+    return CommandStatus.InProgress;
   }
 }

@@ -39,6 +39,13 @@ import { GameLayout } from "./GameLayout";
 import { EventLog } from "./EventLog";
 import * as styles from "./GameView.css";
 import { NavMesh, randomWalk } from "../utility/navigation";
+import { Reload } from "../game/Command";
+
+const enum MouseButton {
+  Left = 0,
+  Middle = 1,
+  Right = 2
+}
 
 // -- Heights --
 
@@ -367,6 +374,7 @@ export class GameView extends Component<Props, State> {
             className={styles.canvas}
             onMouseDown={this.handleMouseDown}
             onWheel={this.handleWheel}
+            onContextMenu={this.handleContextMenu}
             {...canvasProps}
           />
         }
@@ -439,7 +447,7 @@ export class GameView extends Component<Props, State> {
   };
 
   private updateBulletTraces() {
-    const traceFadeSpeed = 0.05;
+    const traceFadeSpeed = 0.03;
     remove(this.bulletTraces, trace => {
       const material = trace.material as Material;
       material.opacity -= traceFadeSpeed;
@@ -455,30 +463,39 @@ export class GameView extends Component<Props, State> {
 
   private handleMouseDown = (event: MouseEvent) => {
     if (!this.game.isWaitingForCommand()) return;
-    const object = this.raycastInteractive(event);
-    if (object !== null) {
-      const userData = expectUserData(object);
-      const { entity } = userData;
-      if (this.game.isUsable(entity)) {
-        if (this.game.isInReachOfPlayer(entity)) {
-          this.game.use(entity);
+
+    switch (event.button) {
+      case MouseButton.Left:
+        const object = this.raycastInteractive(event);
+        if (object !== null) {
+          const userData = expectUserData(object);
+          const { entity } = userData;
+          if (this.game.isUsable(entity)) {
+            if (this.game.isInReachOfPlayer(entity)) {
+              this.game.use(entity);
+            } else {
+              this.addEvent({
+                message: `${entity.type.noun} is out of range`,
+                traces: []
+              });
+            }
+          } else if (this.game.canFireAt(this.game.player, entity)) {
+            this.game.fireAt(this.game.player, entity);
+          }
         } else {
-          this.addEvent({
-            message: `${entity.type.noun} is out of range`,
-            traces: []
-          });
+          const target = this.raycastWorldPosition(event);
+          const to = this.game.getMaximumMoveTowardsPoint(
+            this.game.player,
+            vec3to2(target)
+          );
+          this.game.moveTo(to);
         }
-      } else if (this.game.canFireAt(this.game.player, entity)) {
-        this.game.fireAt(this.game.player, entity);
-      }
-    } else {
-      const target = this.raycastWorldPosition(event);
-      const to = this.game.getMaximumMoveTowardsPoint(
-        this.game.player,
-        vec3to2(target)
-      );
-      this.game.moveTo(to);
+        break;
+      case MouseButton.Right:
+        this.game.setPlayerCommand(new Reload());
+        break;
     }
+    return false;
   };
 
   private addEvent(...newEvents: GameEvent[]) {
@@ -510,6 +527,10 @@ export class GameView extends Component<Props, State> {
       this.maxZoom
     );
     this.updateRendererSize();
+  };
+
+  private handleContextMenu = (event: MouseEvent) => {
+    event.preventDefault();
   };
 
   private updateRendererSize = () => {
