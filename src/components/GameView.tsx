@@ -44,6 +44,10 @@ const enum MouseButton {
   Right = 2
 }
 
+const enum KeyCode {
+  Space = 32
+}
+
 // -- Heights --
 
 const enum Height {
@@ -322,6 +326,10 @@ export class GameView extends Component<Props, State> {
     this.updateRendererSize();
     window.addEventListener("resize", this.updateRendererSize);
 
+    // Add key handler.
+
+    window.addEventListener("keydown", this.handleKeyDown);
+
     // Start rendering.
 
     this.lastTickTime = Date.now();
@@ -365,6 +373,7 @@ export class GameView extends Component<Props, State> {
 
   componentWillUnmount() {
     window.removeEventListener("resize", this.updateRendererSize);
+    window.removeEventListener("keydown", this.handleKeyDown);
   }
 
   render() {
@@ -530,6 +539,14 @@ export class GameView extends Component<Props, State> {
         break;
     }
     return false;
+  };
+
+  private handleKeyDown = (event: KeyboardEvent) => {
+    if (event.keyCode === KeyCode.Space) {
+      if (this.game.isWaitingForCommand()) {
+        this.game.rest(10);
+      }
+    }
   };
 
   private addEvent(...newEvents: GameEvent[]) {

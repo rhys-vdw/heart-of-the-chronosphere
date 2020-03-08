@@ -11,7 +11,8 @@ import {
   Command,
   CommandStatus,
   MoveCommand,
-  RangedAttackCommand
+  RangedAttackCommand,
+  IdleCommand
 } from "./Command";
 import { Entity, EntityType } from "./Entity";
 import { createEntity, entityTypes } from "./entityFactories";
@@ -105,6 +106,10 @@ export class Game {
 
   moveTo(to: Vector2) {
     this.setPlayerCommand(new MoveCommand(to));
+  }
+
+  rest(tickCount: number) {
+    this.setPlayerCommand(new IdleCommand(tickCount));
   }
 
   killEntity(entity: Entity) {
