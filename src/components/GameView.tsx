@@ -22,7 +22,8 @@ import {
   Vector3,
   WebGLRenderer,
   Material,
-  LineDashedMaterial
+  LineDashedMaterial,
+  Color
 } from "three";
 import { AppearanceType, Entity } from "../game/Entity";
 import { Game, GameEvent } from "../game/Game";
@@ -32,7 +33,7 @@ import {
   getTileCenter
 } from "../utility/mazeGenerator";
 import { getMousePosition } from "../utility/mouse";
-import { vec3to2 } from "../utility/threeJsUtility";
+import { vec3to2, moveTowardsInPlace } from "../utility/threeJsUtility";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
 import { Segment } from "../vendor/2d-visibility/src/types";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
@@ -420,6 +421,36 @@ export class GameView extends Component<Props, State> {
     return target;
   }
 
+  private setIndicatorLine(to: Vector2, color: number) {
+    const { player } = this.game;
+
+    // Move starting point to edge of player circle.
+    const from = player.position.clone();
+    const radius = player.type.scale / 2;
+    moveTowardsInPlace(from, to, radius);
+
+    // Update line.
+    const geo = this.indicatorLine.geometry as BufferGeometry;
+    const positionBuffer = geo.attributes.position as BufferAttribute;
+    positionBuffer.setXYZ(0, from.x, from.y, 0);
+    positionBuffer.setXYZ(1, to.x, to.y, 0);
+    positionBuffer.needsUpdate = true;
+
+    // Update color.
+    const mat = this.indicatorLine.material as LineDashedMaterial;
+    mat.color = new Color(color);
+
+    // Recalculate line to updated dashes.
+    this.indicatorLine.computeLineDistances();
+
+    // Reveal line.
+    this.indicatorLine.visible = true;
+  }
+
+  private hideIndicatorLine() {
+    this.indicatorLine.visible = false;
+  }
+
   private updateCursor = (position: { x: number; y: number }) => {
     if (this.game.isWaitingForCommand()) {
       const object = this.raycastInteractive(position);
@@ -429,27 +460,26 @@ export class GameView extends Component<Props, State> {
           this.game.player,
           vec3to2(target)
         );
-        const geo = this.indicatorLine.geometry as BufferGeometry;
-        const positionBuffer = geo.attributes.position as BufferAttribute;
-        const from = this.game.player.position.clone();
-        const offset = to.clone().sub(from);
         const radius = this.game.player.type.scale / 2;
+        const offset = to.clone().sub(this.game.player.position);
         if (offset.length() > radius) {
-          offset.normalize().multiplyScalar(radius);
-          from.add(offset);
-          positionBuffer.setXYZ(0, from.x, from.y, 0);
-          positionBuffer.setXYZ(1, to.x, to.y, 0);
-          positionBuffer.needsUpdate = true;
-          this.indicatorLine.computeLineDistances();
-          this.indicatorLine.visible = true;
+          this.setIndicatorLine(to, this.game.player.type.color);
         } else {
-          this.indicatorLine.visible = false;
+          this.hideIndicatorLine();
         }
       } else {
-        this.indicatorLine.visible = false;
+        const targetEntity = getUserData(object)?.entity;
+        if (
+          targetEntity != null &&
+          this.game.canFireAt(this.game.player, targetEntity)
+        ) {
+          this.setIndicatorLine(targetEntity.position, 0xffff00);
+        } else {
+          this.hideIndicatorLine();
+        }
       }
     } else {
-      this.indicatorLine.visible = false;
+      this.hideIndicatorLine();
     }
   };
 
