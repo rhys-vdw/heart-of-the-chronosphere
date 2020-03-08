@@ -294,7 +294,9 @@ export class GameView extends Component<Props, State> {
       new LineDashedMaterial({
         color: this.game.player.type.color,
         dashSize: 3,
-        gapSize: 1
+        gapSize: 1,
+        transparent: true,
+        opacity: 1
       })
     );
     this.indicatorLine.layers.set(Layer.Ui);
@@ -425,7 +427,7 @@ export class GameView extends Component<Props, State> {
     return target;
   }
 
-  private setIndicatorLine(to: Vector2, color: number) {
+  private setIndicatorLine(to: Vector2, color: number, opacity: number = 1) {
     const { player } = this.game;
 
     // Move starting point to edge of player circle.
@@ -443,6 +445,7 @@ export class GameView extends Component<Props, State> {
     // Update color.
     const mat = this.indicatorLine.material as LineDashedMaterial;
     mat.color = new Color(color);
+    mat.opacity = opacity;
 
     // Recalculate line to updated dashes.
     this.indicatorLine.computeLineDistances();
@@ -457,27 +460,29 @@ export class GameView extends Component<Props, State> {
 
   private updateCursor = (position: { x: number; y: number }) => {
     if (this.game.isWaitingForCommand()) {
+      const { player } = this.game;
       const object = this.raycastInteractive(position);
       if (object === null) {
         const target = this.raycastWorldPosition(position);
         const to = this.game.getMaximumMoveTowardsPoint(
-          this.game.player,
+          player,
           vec3to2(target)
         );
-        const radius = this.game.player.type.scale / 2;
-        const offset = to.clone().sub(this.game.player.position);
+        const radius = player.type.scale / 2;
+        const offset = to.clone().sub(player.position);
         if (offset.length() > radius) {
-          this.setIndicatorLine(to, this.game.player.type.color);
+          this.setIndicatorLine(to, player.type.color);
         } else {
           this.hideIndicatorLine();
         }
       } else {
         const targetEntity = getUserData(object)?.entity;
-        if (
-          targetEntity != null &&
-          this.game.canFireAt(this.game.player, targetEntity)
-        ) {
-          this.setIndicatorLine(targetEntity.position, 0xffff00);
+        if (targetEntity != null && this.game.canFireAt(player, targetEntity)) {
+          this.setIndicatorLine(
+            targetEntity.position,
+            0xffff00,
+            player.held!.ammunition!.loaded === 0 ? 0.2 : 1
+          );
         } else {
           this.hideIndicatorLine();
         }
@@ -488,7 +493,7 @@ export class GameView extends Component<Props, State> {
   };
 
   private updateBulletTraces() {
-    const traceFadeSpeed = 0.1;
+    const traceFadeSpeed = 0.05;
     remove(this.bulletTraces, trace => {
       const material = trace.material as Material;
       material.opacity -= traceFadeSpeed;
