@@ -2,6 +2,7 @@ import { Entity } from "./Entity";
 import { Game } from "./Game";
 import { Vector2 } from "three";
 import { entityTypes } from "./entityFactories";
+import { lerp, getNormalRandom } from "../utility/math";
 
 // -- Types --
 
@@ -87,6 +88,10 @@ export class TakeStairsCommand implements Command {
   }
 }
 
+const accurateSpread = Math.PI * 0.05;
+const inaccurateSpread = Math.PI;
+const accurateAccuracy = 20;
+
 export class RangedAttackCommand implements Command {
   private target: Vector2;
   private tickCount: number = 0;
@@ -107,7 +112,8 @@ export class RangedAttackCommand implements Command {
     const {
       steadyTickCount,
       recoverTickCount,
-      damage
+      damage,
+      accuracy
     } = held.type.rangedWeapon;
     this.tickCount++;
     if (this.tickCount === steadyTickCount) {
@@ -119,10 +125,20 @@ export class RangedAttackCommand implements Command {
       }
       held.ammunition!.loaded--;
       game.addEvent(`${entity.type.noun} fires ${held.type.noun}!`);
+      const maxSpread = lerp(
+        inaccurateSpread,
+        accurateSpread,
+        accuracy / accurateAccuracy
+      );
+      const r = getNormalRandom() - 0.5;
+      const spread = r * maxSpread;
       const direction = this.target
         .clone()
         .sub(entity.position)
-        .normalize();
+        .normalize()
+        .rotateAround(new Vector2(0, 0), spread);
+      console.log({ r, maxSpread, spread, direction });
+
       const rayCastHit = game.rayCastEntities(entity, direction);
       if (rayCastHit === null) {
         game.addEvent(`The bullet disappears`);
