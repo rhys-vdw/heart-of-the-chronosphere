@@ -18,6 +18,12 @@ import { Entity, EntityType } from "./Entity";
 import { createEntity, entityTypes } from "./entityFactories";
 import { Segment, createSegment } from "../vendor/2d-visibility/src/types";
 
+export const enum GameState {
+  Running,
+  Victory,
+  GameOver
+}
+
 export interface Level {
   readonly entities: Entity[];
   readonly map: Map;
@@ -40,6 +46,21 @@ export class Game {
   player: Entity;
   tickCount: number = 0;
   eventBuffer: GameEvent[] = [];
+  state = GameState.Running;
+
+  isGameOver() {
+    return this.state === GameState.GameOver;
+  }
+
+  quit() {
+    remove(this.getCurrentLevel().entities, this.player);
+    this.addEvent(`${this.player.type.noun} flees the Chronosphere!`);
+    this.state = GameState.GameOver;
+  }
+
+  isVictorious() {
+    return this.state === GameState.Victory;
+  }
 
   constructor(mazeOptions: readonly MazeOptions[]) {
     this.levels = mazeOptions.map(o => {
@@ -115,6 +136,9 @@ export class Game {
   killEntity(entity: Entity) {
     this.addEvent({ message: `${entity.type.noun} is killed!`, traces: [] });
     pull(this.getCurrentLevel().entities, entity);
+    if (entity === this.player) {
+      this.state = GameState.GameOver;
+    }
   }
 
   findEntityOfType(entityType: EntityType) {
@@ -143,6 +167,9 @@ export class Game {
   }
 
   isWaitingForCommand(): boolean {
+    if (this.state !== GameState.Running) {
+      return false;
+    }
     if (this.player.commandState === null) {
       throw new TypeError("Player must have a command state");
     }

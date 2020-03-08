@@ -1,5 +1,5 @@
 import { Entity } from "./Entity";
-import { Game } from "./Game";
+import { Game, GameState } from "./Game";
 import { rollDice } from "./dice";
 import { Vector2 } from "three";
 import { entityTypes } from "./entityFactories";
@@ -73,18 +73,29 @@ export class TakeStairsCommand implements Command {
         `${entity.type.noun} cannot take the stairs as it has no stats component`
       );
     }
-    const { isStairsUp } = this;
     const speed = entity.stats.moveSpeed;
     const totalTicks = Math.max(30 - speed, 1);
-    if (this.tickCount === 0) {
+
+    const nextLevelIndex =
+      game.getCurrentLevelIndex() + (this.isStairsUp ? 1 : -1);
+    if (this.tickCount === 0 && nextLevelIndex === -1) {
+      if (
+        game.currentLevelIndex === 0 &&
+        !confirm("Are you sure you want to quit?")
+      ) {
+        return CommandStatus.Complete;
+      }
       game.addEvent(`${entity.type.noun} enters the stairs...`);
     }
     this.tickCount += 1;
     if (this.tickCount >= totalTicks) {
-      game.addEvent(`${entity.type.noun} exits the stairwell`);
-      const nextLevelIndex =
-        game.getCurrentLevelIndex() + (isStairsUp ? 1 : -1);
-      game.enterLevel(nextLevelIndex);
+      if (nextLevelIndex === -1) {
+        game.quit();
+        return CommandStatus.Complete;
+      } else {
+        game.addEvent(`${entity.type.noun} exits the stairwell`);
+        game.enterLevel(nextLevelIndex);
+      }
       const exitEntityType = this.isStairsUp
         ? entityTypes.stairsDown
         : entityTypes.stairsUp;
