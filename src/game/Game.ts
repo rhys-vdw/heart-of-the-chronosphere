@@ -210,7 +210,7 @@ export class Game {
       0
     );
     return maxDistance > offset.length()
-      ? point
+      ? point.clone()
       : from
           .clone()
           .add(new Vector2(direction.x, direction.y).setLength(maxDistance));
