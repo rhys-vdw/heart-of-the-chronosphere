@@ -27,11 +27,7 @@ import {
 } from "three";
 import { AppearanceType, Entity } from "../game/Entity";
 import { Game, GameEvent } from "../game/Game";
-import {
-  generateSphereOptions,
-  SphereOptions,
-  getTileCenter
-} from "../utility/mazeGenerator";
+import { generateSphereOptions, SphereOptions } from "../utility/mazeGenerator";
 import { getMousePosition } from "../utility/mouse";
 import { vec3to2, moveTowardsInPlace } from "../utility/threeJsUtility";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
@@ -40,7 +36,6 @@ import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
 import { GameLayout } from "./GameLayout";
 import { EventLog } from "./EventLog";
 import * as styles from "./GameView.css";
-import { NavMesh, randomWalk } from "../utility/navigation";
 import { Reload } from "../game/Command";
 
 const enum MouseButton {
@@ -54,8 +49,8 @@ const enum MouseButton {
 const enum Height {
   Vision,
   Wall,
-  Entity,
-  Interactive,
+  Prop,
+  Character,
   BulletTrace
 }
 
@@ -63,7 +58,7 @@ const enum Height {
 
 const enum Layer {
   Vision,
-  Interactive,
+  Detector,
   Environment,
   Ui
 }
@@ -221,7 +216,7 @@ export class GameView extends Component<Props, State> {
     this.game = new Game(mazeOptions);
     this.addEvent(...this.game.startGame());
     this.raycaster = new Raycaster();
-    this.raycaster.layers.set(Layer.Interactive);
+    this.raycaster.layers.set(Layer.Detector);
   }
 
   // -- Lifecycle --
@@ -318,7 +313,7 @@ export class GameView extends Component<Props, State> {
     this.camera.layers.enable(Layer.Environment);
     this.camera.layers.enable(Layer.Vision);
     this.camera.layers.enable(Layer.Ui);
-    this.camera.layers.enable(Layer.Interactive);
+    this.camera.layers.enable(Layer.Detector);
 
     // Initialize renderer.
 
@@ -660,15 +655,19 @@ export class GameView extends Component<Props, State> {
     this.game.getVisibleEntities().forEach(entity => {
       let obj = this.viewByEntity.get(entity) ?? null;
       if (obj === null) {
+        let height: number;
         switch (entity.type.appearance) {
           case AppearanceType.Ring:
             obj = GameView.createRing(entity.type.color);
+            height = Height.Character;
             break;
           case AppearanceType.StairsDown:
             obj = createStairs(false);
+            height = Height.Prop;
             break;
           case AppearanceType.StairsUp:
             obj = createStairs(true);
+            height = Height.Prop;
             break;
           default:
             console.error(
@@ -678,19 +677,21 @@ export class GameView extends Component<Props, State> {
         }
 
         const detector = new Mesh(squareGeometry, detectorMaterial);
-        detector.layers.set(Layer.Interactive);
+        detector.layers.set(Layer.Detector);
         obj.attach(detector);
 
         const userData = { entity };
         setUserData(detector, userData);
         setUserData(obj, userData);
 
+        obj.position.setZ(height);
         obj.scale.set(entity.type.scale, entity.type.scale, 1);
         this.scene.add(obj);
         this.viewByEntity.set(entity, obj);
         this.entityViews.push(obj);
       }
-      obj.position.set(entity.position.x, entity.position.y, Height.Entity);
+      obj.position.setX(entity.position.x);
+      obj.position.setY(entity.position.y);
       isVisible.add(obj);
     });
     remove(this.entityViews, (obj, i) => {
