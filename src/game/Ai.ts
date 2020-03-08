@@ -9,7 +9,6 @@ import {
 } from "./Command";
 import { Vector2 } from "three";
 import { moveTowardsInPlace } from "../utility/threeJsUtility";
-import { getRandomInt } from "./dice";
 
 export interface AiController {
   readonly nextCommand: (entity: Entity, game: Game) => Command;
