@@ -62,6 +62,12 @@ export class Game {
     return this.state === GameState.Victory;
   }
 
+  win() {
+    remove(this.getCurrentLevel().entities, this.player);
+    this.addEvent(`${this.player.type.noun} is victorious!`);
+    this.state = GameState.Victory;
+  }
+
   constructor(mazeOptions: readonly MazeOptions[]) {
     this.levels = mazeOptions.map(o => {
       const maze = generateRandomMaze(o);

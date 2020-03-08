@@ -92,6 +92,9 @@ export class TakeStairsCommand implements Command {
       if (nextLevelIndex === -1) {
         game.quit();
         return CommandStatus.Complete;
+      } else if (nextLevelIndex === game.levels.length) {
+        game.win();
+        return CommandStatus.Complete;
       } else {
         game.addEvent(`${entity.type.noun} exits the stairwell`);
         game.enterLevel(nextLevelIndex);

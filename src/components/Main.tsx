@@ -7,11 +7,15 @@ import * as styles from "./Main.css";
 interface State {
   readonly isPlaying: boolean;
   readonly sphereOptions: SphereOptions;
+  readonly subtitle: string;
 }
+
+const defaultSubtitle = "Created by Rhys van der Waerden for 7DRL 2020";
+const victorySubtitle = "You are victorious!";
 
 export class Main extends Component<{}, State> {
   state: State = {
-    isPlaying: true,
+    isPlaying: false,
     sphereOptions: {
       blockChance: 0.3,
       minTileWidth: 30,
@@ -19,22 +23,33 @@ export class Main extends Component<{}, State> {
       minRadius: 50,
       maxRadius: 300,
       sliceCount: 11
-    }
+    },
+    subtitle: defaultSubtitle
   };
 
   private handleNewGame = () => {
     this.setState({ isPlaying: true });
   };
 
+  private handleGameOver = () => {
+    this.setState({ isPlaying: false, subtitle: defaultSubtitle });
+  };
+
+  private handleVictory = () => {
+    this.setState({ isPlaying: false, subtitle: victorySubtitle });
+  };
+
   render() {
-    const { isPlaying } = this.state;
+    const { isPlaying, subtitle } = this.state;
     const view = isPlaying ? (
       <GameView
         sphereOptions={this.state.sphereOptions}
         tickDuration={1000 / 60}
+        onGameOver={this.handleGameOver}
+        onVictory={this.handleVictory}
       />
     ) : (
-      <Title onNewGame={this.handleNewGame} />
+      <Title onNewGame={this.handleNewGame} subtitle={subtitle} />
     );
     return <main className={styles.main}>{view}</main>;
   }

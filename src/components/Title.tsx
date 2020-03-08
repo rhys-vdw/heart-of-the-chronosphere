@@ -5,12 +5,13 @@ import * as styles from "./Title.css";
 
 interface Props {
   readonly onNewGame: () => void;
+  readonly subtitle: string;
 }
 
-export const Title = ({ onNewGame }: Props) => (
+export const Title = ({ onNewGame, subtitle }: Props) => (
   <div className={styles.title}>
     <img className={styles.logo} src={logo} />
-    <p>Created by Rhys van der Waerden for 7DRL 2020</p>
+    <p>{subtitle}</p>
     <Button onClick={onNewGame}>New game</Button>
   </div>
 );

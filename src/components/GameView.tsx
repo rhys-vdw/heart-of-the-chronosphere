@@ -26,7 +26,7 @@ import {
   Color
 } from "three";
 import { AppearanceType, Entity } from "../game/Entity";
-import { Game, GameEvent } from "../game/Game";
+import { Game, GameEvent, GameState } from "../game/Game";
 import { generateSphereOptions, SphereOptions } from "../utility/mazeGenerator";
 import { getMousePosition } from "../utility/mouse";
 import { vec3to2, moveTowardsInPlace } from "../utility/threeJsUtility";
@@ -187,6 +187,8 @@ function createWallPoints(walls: readonly Segment[]) {
 interface Props {
   readonly sphereOptions: SphereOptions;
   readonly tickDuration: number;
+  readonly onVictory: () => void;
+  readonly onGameOver: () => void;
 }
 
 interface State {
@@ -368,7 +370,13 @@ export class GameView extends Component<Props, State> {
       );
       this.renderer.render(this.scene, this.camera);
 
-      requestAnimationFrame(animate);
+      if (this.game.isGameOver()) {
+        setTimeout(this.props.onGameOver, 4_000);
+      } else if (this.game.isVictorious()) {
+        setTimeout(this.props.onVictory, 4_000);
+      } else {
+        requestAnimationFrame(animate);
+      }
     };
     animate();
   }
@@ -573,7 +581,7 @@ export class GameView extends Component<Props, State> {
     }
   }
 
-  private zoom = 2;
+  private zoom = 4;
   private readonly minZoom = 1.5;
   private readonly maxZoom = 5;
   private handleWheel = (event: WheelEvent) => {
