@@ -75,10 +75,11 @@ const viewMaterial = new MeshBasicMaterial({
   transparent: true
 });
 const horizontalPlane = new Plane(new Vector3(0, 0, 1), 0);
-const interactMaterial = new MeshBasicMaterial({
+const detectorMaterial = new MeshBasicMaterial({
   color: 0xff00ff,
   opacity: 0.1,
-  transparent: true
+  transparent: true,
+  visible: false
 });
 
 const lineMaterialByColor = new Map<number, LineBasicMaterial>();
@@ -640,7 +641,7 @@ export class GameView extends Component<Props, State> {
             return;
         }
 
-        const detector = new Mesh(squareGeometry, interactMaterial);
+        const detector = new Mesh(squareGeometry, detectorMaterial);
         detector.layers.set(Layer.Interactive);
         obj.attach(detector);
 
