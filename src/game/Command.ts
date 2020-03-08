@@ -23,7 +23,7 @@ export class IdleCommand implements Command {
   constructor(tickCount: number) {
     this.tickCount = tickCount;
   }
-  nextTick(entity: Entity, game: Game): CommandStatus {
+  nextTick(_entity: Entity, _game: Game): CommandStatus {
     return --this.tickCount > 0
       ? CommandStatus.InProgress
       : CommandStatus.Complete;
