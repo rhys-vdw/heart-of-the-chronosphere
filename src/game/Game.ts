@@ -96,7 +96,21 @@ export class Game {
   }
 
   isUsable(useTarget: Entity): boolean {
-    return useTarget.type.getUseCommand !== null;
+    return (
+      this.canWalkTo(useTarget.position) &&
+      useTarget.type.getUseCommand !== null
+    );
+  }
+
+  canWalkTo(position: Vector2): boolean {
+    const direction = position
+      .clone()
+      .sub(this.player.position)
+      .normalize();
+    return (
+      this.rayCastWalls(this.player.position, direction) >=
+      this.player.position.distanceTo(position) - 0.1
+    );
   }
 
   isInReach(actor: Entity, target: Entity): boolean {
@@ -125,10 +139,7 @@ export class Game {
     if (!this.isUsable(useTarget)) {
       throw new Error(`${useTarget.type.noun} is not usable`);
     }
-    if (!this.isInReach(this.player, useTarget)) {
-      throw new Error(`${useTarget.type.noun} is out of range`);
-    }
-    this.setPlayerCommand(useTarget.type.getUseCommand!());
+    this.setPlayerCommand(useTarget.type.getUseCommand!(useTarget));
   }
 
   moveTo(to: Vector2) {

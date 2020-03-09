@@ -26,7 +26,7 @@ export interface EntityType {
   readonly inititalStats: Readonly<Stats> | null;
   readonly initialHeld?: EntityType | null;
   readonly controllerName: ControllerName;
-  readonly getUseCommand: (() => Command) | null;
+  readonly getUseCommand: ((entity: Entity) => Command) | null;
   readonly rangedWeapon?: RangedWeapon;
 }
 

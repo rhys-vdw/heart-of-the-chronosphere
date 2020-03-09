@@ -582,14 +582,7 @@ export class GameView extends Component<Props, State> {
           if (entity === this.game.player) {
             // Do nothing.
           } else if (this.game.isUsable(entity)) {
-            if (this.game.isInReachOfPlayer(entity)) {
-              this.game.use(entity);
-            } else {
-              this.addEvent({
-                message: `${entity.type.noun} is out of range`,
-                traces: []
-              });
-            }
+            this.game.use(entity);
           } else if (this.game.canFireAt(this.game.player, entity)) {
             this.game.fireAt(this.game.player, entity);
           }

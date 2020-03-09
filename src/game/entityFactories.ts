@@ -87,7 +87,7 @@ export const entityTypes = fixTypes({
     scale: 9,
     inititalStats: null,
     controllerName: "none",
-    getUseCommand: () => new TakeStairsCommand(true)
+    getUseCommand: (entity: Entity) => new TakeStairsCommand(entity, true)
   },
 
   stairsDown: {
@@ -97,7 +97,8 @@ export const entityTypes = fixTypes({
     scale: 9,
     inititalStats: null,
     controllerName: "none",
-    getUseCommand: () => new TakeStairsCommand(false)
+
+    getUseCommand: (entity: Entity) => new TakeStairsCommand(entity, false)
   },
 
   sixShooter

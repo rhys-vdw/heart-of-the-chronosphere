@@ -64,10 +64,22 @@ export class MoveCommand implements Command {
 export class TakeStairsCommand implements Command {
   private tickCount = 0;
   private isStairsUp: boolean;
-  constructor(isStairsUp: boolean) {
+  private stairs: Entity;
+  private move: MoveCommand | null = null;
+  constructor(stairs: Entity, isStairsUp: boolean) {
+    this.stairs = stairs;
     this.isStairsUp = isStairsUp;
   }
   nextTick(entity: Entity, game: Game): CommandStatus {
+    if (!game.isInReach(entity, this.stairs)) {
+      if (this.move === null) {
+        this.move = new MoveCommand(this.stairs.position);
+      }
+      const s = this.move.nextTick(entity, game);
+      if (s === CommandStatus.InProgress) {
+        return s;
+      }
+    }
     if (entity.stats === null) {
       throw new TypeError(
         `${entity.type.noun} cannot take the stairs as it has no stats component`
