@@ -118,6 +118,7 @@ export function createEntity(
     position,
     type,
     lastHitTick: -1,
+    isVisible: false,
     stats: type.inititalStats === null ? null : { ...type.inititalStats },
     commandState: {
       currentCommand: null,

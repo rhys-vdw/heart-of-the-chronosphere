@@ -11,6 +11,7 @@ export interface Entity {
   lastHitTick: number;
   readonly type: EntityType;
   stats: Stats | null;
+  isVisible: boolean;
   readonly commandState: CommandState;
   readonly controller: AiController | null;
 }

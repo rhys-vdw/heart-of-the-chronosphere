@@ -99,6 +99,12 @@ function getLineMaterial(color: number) {
   }
   return material;
 }
+const invisibleMaterial = new LineBasicMaterial({
+  color: "white",
+  transparent: true,
+  opacity: 0.3,
+  visible: false
+});
 
 // -- Geometry --
 
@@ -775,10 +781,14 @@ export class GameView extends Component<Props, State> {
       }
 
       if (obj instanceof Line) {
-        obj.material =
-          entity.lastHitTick === this.game.tickCount
-            ? getLineMaterial(0xff0000)
-            : getLineMaterial(entity.type.color);
+        if (entity.isVisible) {
+          obj.material =
+            entity.lastHitTick === this.game.tickCount
+              ? getLineMaterial(0xff0000)
+              : getLineMaterial(entity.type.color);
+        } else {
+          obj.material = invisibleMaterial;
+        }
       }
 
       obj.position.setX(entity.position.x);

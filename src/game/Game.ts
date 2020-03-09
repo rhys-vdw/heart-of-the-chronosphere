@@ -167,6 +167,7 @@ export class Game {
     }
     this.currentLevelIndex = levelIndex;
     this.getCurrentLevel().entities.push(this.player);
+    this.updateVisibility();
     this.addEvent(
       `${this.player.type.noun} is on level ${this.currentLevelIndex + 1}`
     );
@@ -288,7 +289,23 @@ export class Game {
         }
       }
     }
+    this.updateVisibility();
     return this.flushEvents();
+  }
+
+  private updateVisibility() {
+    for (const entity of this.getCurrentLevel().entities) {
+      if (entity !== this.player) {
+        const direction = entity.position
+          .clone()
+          .sub(this.player.position)
+          .normalize();
+        const result = this.rayCastEntities(this.player, direction, [entity]);
+        entity.isVisible = result?.entity != null;
+      } else {
+        entity.isVisible = true;
+      }
+    }
   }
 
   private flushEvents(): GameEvent[] {
