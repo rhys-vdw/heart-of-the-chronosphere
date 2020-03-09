@@ -196,7 +196,7 @@ export class RangedAttackCommand implements Command {
               : `The bullet deals ${adjustedDamage} to the ${noun}`,
             traces: [trace]
           });
-          if (rayCastHit.entity.stats!.health < 0) {
+          if (rayCastHit.entity.stats!.health <= 0) {
             game.killEntity(rayCastHit.entity);
           }
         }
