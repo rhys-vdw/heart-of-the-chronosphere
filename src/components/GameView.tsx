@@ -338,6 +338,7 @@ export class GameView extends Component<Props, State> {
 
     this.lastTickTime = Date.now();
     const animate = () => {
+      let hitStop = false;
       if (!this.game.isWaitingForCommand()) {
         const { tickDuration } = this.props;
         const time = Date.now();
@@ -347,7 +348,10 @@ export class GameView extends Component<Props, State> {
           const events = this.game.tick();
           this.addEvent(...events);
           this.lastTickTime += tickDuration;
-          this.updateBulletTraces();
+          hitStop = events.some(e => e.traces.some(t => t.isHit));
+          if (hitStop) {
+            break;
+          }
           if (this.game.isWaitingForCommand()) {
             break;
           }
@@ -361,6 +365,7 @@ export class GameView extends Component<Props, State> {
         this.updateNavMesh();
       }
       this.updateEntities();
+      this.updateBulletTraces();
       this.updateVisibilityPolygon();
       this.updateCursor(getMousePosition());
       this.camera.position.set(
@@ -374,6 +379,13 @@ export class GameView extends Component<Props, State> {
         setTimeout(this.props.onGameOver, 4_000);
       } else if (this.game.isVictorious()) {
         setTimeout(this.props.onVictory, 4_000);
+      } else if (hitStop) {
+        window.setTimeout(() => {
+          requestAnimationFrame(() => {
+            this.lastTickTime = Date.now();
+            animate();
+          });
+        }, 60);
       } else {
         requestAnimationFrame(animate);
       }
@@ -501,13 +513,14 @@ export class GameView extends Component<Props, State> {
   };
 
   private updateBulletTraces() {
-    const traceFadeSpeed = 0.05;
+    const traceFadeSpeed = 0.04;
     remove(this.bulletTraces, trace => {
       const material = trace.material as Material;
       material.opacity -= traceFadeSpeed;
       if (material.opacity <= 0) {
         material.dispose();
         trace.geometry.dispose();
+        (trace.material as LineBasicMaterial).dispose();
         this.scene.remove(trace);
         return true;
       }
@@ -569,7 +582,9 @@ export class GameView extends Component<Props, State> {
         event.traces.forEach(t => {
           const geo = new BufferGeometry();
           geo.setFromPoints([t.from, t.to]);
-          const mat = getLineMaterial(t.isHit ? 0xff0000 : 0xcccccc);
+          const mat = new LineBasicMaterial({
+            color: t.isHit ? 0xff0000 : 0xcccccc
+          });
           mat.transparent = true;
           mat.opacity = 1;
           const trace = new Line(geo, mat);
