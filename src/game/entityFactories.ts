@@ -67,7 +67,7 @@ export const entityTypes = fixTypes({
 
   orc: {
     color: 0x33ff33,
-    noun: "orc",
+    noun: "automaton",
     appearance: AppearanceType.Ring,
     scale: 10,
     inititalStats: {

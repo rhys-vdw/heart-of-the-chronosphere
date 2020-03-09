@@ -186,8 +186,8 @@ export class RangedAttackCommand implements Command {
 
           game.addEvent({
             message: isCritical
-              ? `The bullet rips through the ${noun}'s brittle frame for ${adjustedDamage} damage`
-              : `The bullet deals ${adjustedDamage} to ${noun}`,
+              ? `The bullet rips through the ${noun} for ${adjustedDamage} damage`
+              : `The bullet deals ${adjustedDamage} to the ${noun}`,
             traces: [trace]
           });
           if (rayCastHit.entity.stats!.health < 0) {
