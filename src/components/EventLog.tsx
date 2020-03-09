@@ -40,6 +40,19 @@ export class EventLog extends Component<Props, State> {
         className={styles.container}
       >
         <ol className={styles.list}>
+          <li>
+            <p>
+              You must exit the Chronosphere through the stairs in the top
+              level.
+            </p>
+            <p>
+              Shoot—mouse left
+              <br />
+              Reload—mouse right
+              <br />
+              Rest—space
+            </p>
+          </li>
           {this.props.events.map(e => (
             <li>{e.message}</li>
           ))}
