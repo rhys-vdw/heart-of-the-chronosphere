@@ -10,7 +10,7 @@ export interface Entity {
   ammunition?: Ammunition;
   lastHitTick: number;
   readonly type: EntityType;
-  readonly stats: Stats | null;
+  stats: Stats | null;
   readonly commandState: CommandState;
   readonly controller: AiController | null;
 }
@@ -41,7 +41,7 @@ export interface RangedWeapon {
 }
 
 export interface Ammunition {
-  loaded: number;
+  readonly loaded: number;
 }
 
 export enum AppearanceType {
@@ -52,9 +52,9 @@ export enum AppearanceType {
 }
 
 export interface Stats {
-  moveSpeed: number;
-  health: number;
-  maxHealth: number;
+  readonly moveSpeed: number;
+  readonly health: number;
+  readonly maxHealth: number;
 }
 
 export interface CommandState {

@@ -147,7 +147,10 @@ export class RangedAttackCommand implements Command {
         );
         return CommandStatus.Complete;
       }
-      held.ammunition!.loaded--;
+      held.ammunition! = {
+        ...held.ammunition!,
+        loaded: held.ammunition!.loaded - 1
+      };
       game.addEvent(`${entity.type.noun} fires ${held.type.noun}!`);
       const maxSpread = lerp(
         inaccurateSpread,
@@ -180,7 +183,10 @@ export class RangedAttackCommand implements Command {
             rayCastHit.entity === this.target && rollDice(2, 6) === 12;
           const damage = rollDice(...damageRoll) + damageBonus;
           const adjustedDamage = damage * (isCritical ? 2 : 1);
-          rayCastHit.entity.stats!.health -= adjustedDamage;
+          rayCastHit.entity.stats = {
+            ...rayCastHit.entity.stats!,
+            health: rayCastHit.entity.stats!.health - adjustedDamage
+          };
           rayCastHit.entity.lastHitTick = game.tickCount;
           const { noun } = rayCastHit.entity!.type;
 
@@ -229,7 +235,10 @@ export class Reload implements Command {
         rangedWeapon.reloadCount,
         rangedWeapon.ammoCapacity - held.ammunition!.loaded
       );
-      held.ammunition!.loaded += amount;
+      held.ammunition = {
+        ...held.ammunition,
+        loaded: held.ammunition!.loaded + amount
+      };
       game.addEvent({
         message: `${entity.type.noun} loaded ${amount} ammo into ${
           held.type.noun

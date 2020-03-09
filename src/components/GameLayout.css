@@ -10,10 +10,37 @@
   flex: 5 0 0;
 }
 
-.log {
-  composes: box from "./shared.css";
+.bar {
   flex: 2 0 0;
-  margin: 1em 1em 1em 0;
   max-width: 25em;
   min-width: 15em;
+  position: relative;
+  /* display: flex; */
+  /* flex-direction: column; */
+  margin: 1em 1em 1em 0;
+  --status-height: 7em;
+  --margin: 1em;
+}
+
+.log,
+.status {
+  composes: box from "./shared.css";
+  /* flex-grow: 1; */
+}
+
+.status {
+  height: var(--status-height);
+  /* height: var(--flex-height); */
+  /* flex-grow: 1; */
+}
+
+.log {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(100% - var(--status-height) - var(--margin));
+  /* margin: 1em 0 0 0; */
+  /* flex-grow: 1; */
+  /* height: calc(100% - var(--flex-height)); */
 }

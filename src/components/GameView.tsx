@@ -4,12 +4,15 @@ import {
   BufferAttribute,
   BufferGeometry,
   Camera,
+  Color,
   EllipseCurve,
   Face3,
   Geometry,
   Line,
   LineBasicMaterial,
+  LineDashedMaterial,
   LineSegments,
+  Material,
   Mesh,
   MeshBasicMaterial,
   Object3D,
@@ -20,23 +23,27 @@ import {
   Scene,
   Vector2,
   Vector3,
-  WebGLRenderer,
-  Material,
-  LineDashedMaterial,
-  Color
+  WebGLRenderer
 } from "three";
-import { AppearanceType, Entity } from "../game/Entity";
+import { Reload } from "../game/Command";
+import {
+  Ammunition,
+  AppearanceType,
+  Entity,
+  RangedWeapon,
+  Stats
+} from "../game/Entity";
 import { Game, GameEvent } from "../game/Game";
 import { generateSphereOptions, SphereOptions } from "../utility/mazeGenerator";
 import { getMousePosition } from "../utility/mouse";
-import { vec3to2, moveTowardsInPlace } from "../utility/threeJsUtility";
+import { moveTowardsInPlace, vec3to2 } from "../utility/threeJsUtility";
 import { loadMap } from "../vendor/2d-visibility/src/loadMap";
 import { Segment } from "../vendor/2d-visibility/src/types";
 import { calculateVisibility } from "../vendor/2d-visibility/src/visibility";
-import { GameLayout } from "./GameLayout";
 import { EventLog } from "./EventLog";
+import { GameLayout } from "./GameLayout";
 import * as styles from "./GameView.css";
-import { Reload } from "../game/Command";
+import { StatsDisplay } from "./StatsDisplay";
 
 const enum MouseButton {
   Left = 0,
@@ -193,6 +200,9 @@ interface Props {
 
 interface State {
   readonly events: readonly GameEvent[];
+  readonly stats: Stats;
+  readonly ammunition: Ammunition;
+  readonly ammoCapacity: number;
 }
 
 export class GameView extends Component<Props, State> {
@@ -213,7 +223,10 @@ export class GameView extends Component<Props, State> {
   private bulletTraces: Line[] = [];
 
   state: State = {
-    events: []
+    events: [],
+    stats: { moveSpeed: 0, health: 0, maxHealth: 0 },
+    ammunition: { loaded: 0 },
+    ammoCapacity: 0
   };
 
   constructor(props: Props) {
@@ -356,6 +369,21 @@ export class GameView extends Component<Props, State> {
             break;
           }
         }
+        const { player } = this.game;
+        if (this.state.stats !== player.stats) {
+          this.setState({ stats: player.stats! });
+        }
+        if (
+          this.state.ammoCapacity !==
+          player.held!.type.rangedWeapon!.ammoCapacity
+        ) {
+          this.setState({
+            ammoCapacity: player.held!.type.rangedWeapon!.ammoCapacity
+          });
+        }
+        if (this.state.ammunition !== player.held!.ammunition!) {
+          this.setState({ ammunition: player.held!.ammunition! });
+        }
       } else {
         // Hack to pause game while running.
         this.lastTickTime = Date.now();
@@ -400,6 +428,7 @@ export class GameView extends Component<Props, State> {
 
   render() {
     const canvasProps = { ref: this.canvasRef, resize: true } as any;
+    const { stats, ammunition, ammoCapacity } = this.state;
     return (
       <GameLayout
         viewChild={
@@ -412,6 +441,13 @@ export class GameView extends Component<Props, State> {
           />
         }
         logChild={<EventLog events={this.state.events} />}
+        statsChild={
+          <StatsDisplay
+            stats={stats}
+            ammunition={ammunition}
+            ammoCapacity={ammoCapacity}
+          />
+        }
       />
     );
   }

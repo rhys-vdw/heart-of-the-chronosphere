@@ -11,7 +11,7 @@ interface State {
 }
 
 const defaultSubtitle = "Created by Rhys van der Waerden for 7DRL 2020";
-const victorySubtitle = "You are victorious!";
+const victorySubtitle = "☆ You have bested the Chronosphere ☆";
 
 export class Main extends Component<{}, State> {
   state: State = {
