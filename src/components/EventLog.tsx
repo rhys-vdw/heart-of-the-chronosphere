@@ -40,7 +40,7 @@ export class EventLog extends Component<Props, State> {
         className={styles.container}
       >
         <ol className={styles.list}>
-          <li>
+          <li style={{ color: "magenta" }}>
             <p>
               You must exit the Chronosphere through the stairs in the top
               level.
